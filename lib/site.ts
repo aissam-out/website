@@ -125,7 +125,13 @@ export const timeline = [
   },
 ] as const;
 
-export const papers = [
+export const papers: ReadonlyArray<{
+  title: string;
+  year: string;
+  href: string;
+  venue: string;
+  citations: number;
+}> = [
   {
     title:
       "Dynamic Access Control Policy based on Blockchain and Machine Learning for the Internet of Things",
@@ -148,9 +154,17 @@ export const papers = [
     venue: "arXiv",
     citations: 32,
   },
-] as const;
+];
 
-export const stackGroups = [
+export type StackItem = {
+  name: string;
+  icon: string;
+};
+
+export const stackGroups: ReadonlyArray<{
+  label: string;
+  items: ReadonlyArray<StackItem>;
+}> = [
   {
     label: "Models & languages",
     items: [
@@ -185,10 +199,10 @@ export const stackGroups = [
       { name: "Git", icon: "git" },
     ],
   },
-] as const;
+];
 
 /** Flat list kept for any callers that still expect `stack`. */
-export const stack = stackGroups.flatMap((group) => group.items);
+export const stack: StackItem[] = stackGroups.flatMap((group) => [...group.items]);
 
 export const seriesCopy: Record<
   string,
