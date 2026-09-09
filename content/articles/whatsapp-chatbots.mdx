@@ -1,0 +1,152 @@
+---
+title: "A guide to building WhatsApp chatbots using Dialogflow and Firebase"
+slug: "whatsapp-chatbots"
+date: 2020-09-13
+description: "A step-by-step tutorial to create smart chatbots for your business and have them interact with your backend — Twilio, Flask, Dialogflow, Firebase."
+source: "Medium"
+sourceUrl: "https://medium.com/data-science/a-guide-to-building-whatsapp-chatbots-using-dialogflow-and-firebase-4ff5e904ac3"
+series: "Production"
+---
+
+Chatbots are conversational agents, programs capable of conducting a conversation with an Internet user. In this tutorial I’ll walk you through an implementation of a WhatsApp chatbot using Twilio, then Dialogflow, then a real backend.
+
+In addition to static chatbots, we will also benefit from the power of Google’s Dialogflow to create intelligent bots, capable of understanding human language.
+
+## 1. WhatsApp chatbot
+
+WhatsApp is the most popular OTT app in many parts of the world. Thanks to WhatsApp chatbots you can provide your customers with support on a platform they use and answer their questions immediately.
+
+Using Twilio, Flask and Heroku, as well as Dialogflow, we can build the whole path.
+
+### Twilio
+
+Twilio is a cloud communications platform as a service. With the Twilio API for WhatsApp, you can send notifications, have two-way conversations, or build chatbots.
+
+For free, and without waiting for your Twilio number to be approved for WhatsApp, Twilio Sandbox for WhatsApp lets you create your chatbot immediately.
+
+1. Create a Twilio account
+2. Create a new project
+3. On the project console, open Programmable SMS Dashboard
+4. Select WhatsApp Beta
+
+When you activate your sandbox, you will see the phone number associated with it as well as its name (for example `regular-syllable`).
+
+### Create the application using Flask
+
+```bash
+python -m venv myvenv
+# Windows: myvenv\Scripts\activate
+# Linux: source myvenv/bin/activate
+pip install twilio flask
+```
+
+Create `app.py`:
+
+```python
+from flask import Flask, request
+from twilio.twiml.messaging_response import MessagingResponse
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hello, World!"
+
+@app.route("/sms", methods=['POST'])
+def sms_reply():
+    msg = request.form.get('Body')
+    resp = MessagingResponse()
+    resp.message("You said: {}".format(msg))
+    return str(resp)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+Run `python app.py`. You can check `http://127.0.0.1:5000/` in your browser. Distant machines cannot reach it yet, hence Ngrok.
+
+### Public address with Ngrok
+
+```bash
+./ngrok http 5000
+```
+
+Paste the public URL into the Twilio sandbox as the URL for incoming messages. Open WhatsApp, add the sandbox number, start with `join regular-syllable`. Send whatever you want — the bot replies with the same message. A parrot. Useful as a wiring test.
+
+The remaining problem: your machine has to stay on.
+
+## 2. Get rid of your machine with Heroku
+
+```bash
+pip install gunicorn
+```
+
+Add:
+
+- `Procfile` — `web gunicorn app:app`
+- `runtime.txt` — `python-3.7.2`
+- `requirements.txt` — `pip freeze > requirements.txt`
+- `.gitignore` — `myvenv/` and `*.pyc`
+
+Then:
+
+```bash
+git init
+git add .
+git commit -m "first commit"
+heroku login
+heroku create
+git push heroku master
+```
+
+Replace the Ngrok URL in the sandbox with the Heroku `/sms` URL. The parrot now runs 24/7.
+
+To update later: change the code, `pip freeze > requirements.txt` if you added packages, then `git add . && git commit && git push heroku master`.
+
+## 3. Use your own number
+
+The sandbox has two drawbacks for a serious business bot:
+
+1. Clients must start with a bizarre join code
+2. The bot shows Twilio’s logo instead of yours
+
+Buy a Twilio number, then request access to enable it for WhatsApp (you need a Facebook Business Manager ID). The process takes about two to three weeks: sender profile, message templates, then approval for Twilio to send on your behalf.
+
+## 4. Advanced chatbots using Dialogflow
+
+So far the bot only repeats. Now we train it and let it talk to a backend. Case study: a shopping / delivery store.
+
+A Dialogflow agent is a natural language understanding module. It uses **intents** to categorise what the user wants and **entities** to extract data (we’ll send those to the backend).
+
+Enable Small Talk for the `hi / how are you / bye` layer. Then create an intent, add training phrases, mark required entities, and write prompts for slot filling. Default static responses are optional — the backend can generate the real ones.
+
+### Database
+
+We’ll use Firebase Realtime Database, a cloud-hosted NoSQL store.
+
+1. Add a Firebase project
+2. Create a realtime database in test mode
+3. Copy the SDK config credentials
+4. In Python, `pyrebase.initialize_app(config)` then `db.child("products").push(...)`
+
+Products are JSON. You can push, update, remove, and watch the web console update live.
+
+### Check availability and process Dialogflow
+
+In a helpers file, `is_available()` looks up a product in the realtime DB. Another function unpacks the JSON Dialogflow posts (size, colour, location, date), checks required fields, and asks whether anything in stock matches.
+
+`app.py` then exposes `/check`: receive the POST, extract entities, query Firebase, write the order if the product exists, reply in JSON.
+
+Run locally + Ngrok, or push to Heroku as before.
+
+### Fulfillment
+
+By default Dialogflow answers with a static response. Enable fulfillment, point the webhook at your hosted app, then on the intent enable “webhook call for intent” and “webhook call for slot filling”.
+
+When an intent with fulfillment is matched, Dialogflow sends the payload to your Flask service. You check stock, write the command, send an appropriate reply.
+
+You can follow the earlier Twilio steps to put this on WhatsApp, or use Dialogflow’s integrations for Messenger, Slack, or a website.
+
+## Conclusion
+
+When an end-user starts a conversation, the agent tries to match an intent, fills required entities, and sends them to the fulfillment URL. Flask verifies the product in Firebase, records the command, and answers. The parrot was a wiring test. This is the actual system.

@@ -1,0 +1,14 @@
+---
+title: "Low-Rank Adaptation (LoRA)"
+slug: "lora"
+date: 2023-12-20
+description: "LoRA is one of the widely used PEFT methods. Even in most cases when someone says PEFT, they typically mean LoRA only."
+category: "advanced"
+readingTime: "2 min"
+---
+
+LoRA is one of the widely used PEFT method. Even in most cases when someone says PEFT, they typically mean LoRA only.
+
+LoRA reduces the number of trainable parameters in models. By introducing a smaller number of new weights and training only those, LoRA speeds up training, reduces memory usage, and results in smaller model weights (typically just a few hundred megabytes).
+
+Although LoRA boasts a smaller and quicker training process, it's worth noting that inference might suffer from latency problems when loading the base model and the LoRA model separately. To address this latency, you can utilize the "merge_and_unload()" function. This function combines the adapter weights with the base model, enabling you to employ the merged model as a self-contained entity, thus eliminating any latency issues.

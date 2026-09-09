@@ -1,0 +1,16 @@
+---
+title: "Data Collators in Machine Learning"
+slug: "collators"
+date: 2023-12-26
+description: "At its core, a data collator is an object that assembles a batch of data from a list of dataset elements. These elements share the same data type as those of the training or evaluation."
+category: "advanced"
+readingTime: "2 min"
+---
+
+At its core, a data collator is an object that assembles a batch of data from a list of dataset elements. These elements share the same data type as those of the training or evaluation dataset. This step is vital because machine learning models typically learn from data in batches rather than individual data points.
+
+One of the primary functions of data collators is to process the data within these batches. This processing may involve operations such as padding, which ensures that all elements within a batch have the same dimensions. This uniformity is critical for feeding data into neural networks, which require consistent input sizes.
+
+Additionally, some data collators go beyond basic batch formation and perform random data augmentation. Random masking is one such augmentation technique that can be applied to the assembled batch. By introducing random variations into the data, models become more robust and less prone to overfitting, ultimately improving their performance on unseen data.
+
+In conclusion, data collators are essential tools in machine learning pipelines. They facilitate the creation of data batches and can enhance model training by applying preprocessing and data augmentation techniques. Understanding the role of data collators is crucial for building effective machine learning models that can handle diverse datasets and deliver superior results.

@@ -1,0 +1,34 @@
+---
+title: Darija Open Dataset
+slug: darija-open-dataset
+date: 2021-01-01
+description: The largest open collaborative dataset for Moroccan Darija ⇆ English, built for NLP — now past 500,000 semantic rows, in both Arabic and Latin script.
+tags: [NLP, Darija, Open Source, Dataset]
+github: https://github.com/darija-open-dataset/dataset
+featured: true
+---
+
+Darija is spoken by millions and still treated as a rounding error in most language resources. [Darija Open Dataset (DODa)](https://github.com/darija-open-dataset/dataset) is an attempt to change that: an open, collaborative Darija ⇆ English resource built specifically for NLP.
+
+## What it contains
+
+- On the order of **500,000 semantic rows** (human + controlled synthetic)
+- Semantic *and* syntactic categorisation
+- Multiple spellings for the same word (Darija is not a single orthography)
+- Verb–noun and masculine–feminine correspondences
+- Conjugation of hundreds of verbs across tenses
+- Dual script: Arabic and Latin, matching how people actually write
+- Aligned utterances across Arabic Darija, Arabizi, and English
+
+Version 1 started around 10,000 entries. Version 2 crossed 100,000. The latest expansion reaches **500,350** rows through controlled synthetic generation grounded in DODa — written up in [How We Expanded DODa to 500K Darija Examples](/articles/how-we-expanded-doda-to-500k).
+
+## Why translation, not only raw text
+
+Training a model directly on raw Darija has a place. Translation is the other lever: it lets Darija borrow the tooling, evaluation sets, and applications already built for English instead of starting from zero every time.
+
+## Papers
+
+- [Moroccan Dialect -Darija- Open Dataset](https://arxiv.org/abs/2103.09687) (2021)
+- [The Evolution of Darija Open Dataset: Introducing Version 2](https://arxiv.org/abs/2405.13016) (2024)
+
+The dataset is collaborative on purpose. The Moroccan IT community is the point, not a footnote.

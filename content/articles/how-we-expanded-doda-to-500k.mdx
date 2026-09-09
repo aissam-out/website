@@ -1,0 +1,153 @@
+---
+title: "How We Expanded DODa to 500K Darija Examples"
+slug: "how-we-expanded-doda-to-500k"
+date: 2026-09-07
+description: "Darija is inconvenient for NLP — two scripts, flexible spelling, heavy borrowing. DODa’s latest expansion turns that inconvenience into a controlled 500K-row training corpus."
+series: "Darija"
+github: "https://github.com/darija-open-dataset/dataset"
+---
+
+Darija has always been inconvenient for NLP. It moves between Arabic script and Arabizi, borrows freely from French and English, and treats spelling as flexible. Combined with the usual low-resource problem, this makes even basic tasks such as translation difficult.
+
+DODa has addressed that problem in stages. The first release organized Darija vocabulary, semantic and syntactic categories, morphology, conjugation and spelling variants. The next expansion added tens of thousands of translated sentences in both Arabic and Latin scripts.
+
+The latest expansion asks a larger question: can DODa become a corpus large and varied enough for modern models?
+
+![DODa growth at a glance: 10K+ structured resource, 100K+ sentence expansion, 500,350 training-oriented corpus](/media/how-we-expanded-doda-to-500K/doda_growth_at_a_glance.png)
+
+The obvious route to scale was always to generate more data with an LLM. But for a long time, the models were not good enough at Darija to make that route reliable. They could produce fluent-looking sentences, yet they often missed the language’s spelling variation, code-switching, morphology and everyday phrasing. Generating hundreds of thousands of rows before solving those problems would have meant scaling the model’s mistakes along with its output.
+
+So the work had to proceed in parallel.
+
+While waiting for models to become capable enough to generate useful Darija, DODa built the structure needed to control and evaluate them: a lexicon, semantic and syntactic categories, morphology, conjugations, spelling variants, Arabic- and Latin-script representations, and sentence-level human data. That structure became the first pillar. A sufficiently capable Darija model became the second.
+
+Only once both were available did large-scale generation become practical.
+
+The answer therefore required more than scale. It required a model that could produce Darija well enough, and a dataset structure that could keep the model from defining the corpus on its own. Gemini 3.1 Flash-Lite generates the sentences, but it does not decide what the corpus should look like. DODa and a separate sampling system control much of the surrounding distribution: sentence lengths, speech acts, domains, relationships, tones, code-switching patterns, names, numbers and dates. The model realizes language under those constraints; the pipeline decides which constraints to apply.
+
+The result is a corpus of **500,350** semantic rows.
+
+Each synthetic row aligns one Darija utterance across Arabic script, Latin/Arabizi and English, while also recording how it was generated:
+
+```json
+{
+  "id": "...",
+  "darija_arabic": "...",
+  "darija_latin": "...",
+  "english": "...",
+  "code_switch": null,
+  "register": "...",
+  "domain": "...",
+  "generation_mode": "grounded",
+  "model": "..."
+}
+```
+
+The Arabic and Latin fields represent the same Darija sentence, and `english` contains its translation. The remaining fields describe code-switching, register, domain, generation strategy and model. The generator uses additional scenarios and DODa grounding examples internally, but those are not saved in each exported synthetic row. In the merged training dataset, rows also include a `source` field such as `"doda"`.
+
+![One Darija utterance aligned across Arabic script, Latin/Arabizi, and English](/media/how-we-expanded-doda-to-500K/one_utterance_three_representations.png)
+
+## The model writes the sentence. The pipeline controls the distribution.
+
+A capable model can generate many plausible Darija sentences, but unconstrained generation tends to favor familiar patterns. In an early setup, sentences averaged 6.4 words and 51% used a neutral register. To broaden coverage, the pipeline samples generation targets before asking the model to write each sentence.
+
+Sentence length is sampled from weighted buckets:
+
+| Length | Share |
+| --- | --- |
+| 2–4 words | 12% |
+| 5–8 words | 26% |
+| 9–14 words | 28% |
+| 15–25 words | 22% |
+| 26–40 words | 12% |
+
+Speech acts are sampled separately:
+
+| Speech act | Share |
+| --- | --- |
+| statement / news | 38% |
+| question | 26% |
+| order / request / instruction | 16% |
+| reaction / exclamation | 10% |
+| negation / contradiction | 10% |
+
+The pipeline also encourages content that models may otherwise underproduce. Forty-five percent of seeds request a feature such as a number, Moroccan name, city, date, past event or future plan; the remaining 55% are unrestricted.
+
+These controls are implemented programmatically rather than left to a single prompt. The model decides how to phrase each sentence, while the pipeline determines the overall distribution.
+
+![Generation controls used to shape the synthetic distribution across domain, tone, length, speech act, relationship, medium, content features, and code-switching](/media/how-we-expanded-doda-to-500K/synthetic_dataset_generation_controls.png)
+
+## Two complementary generation branches
+
+The 452,000 generated rows are split approximately evenly between DODa-grounded and exploratory generation.
+
+The DODa-grounded branch uses four independent grounding bundles combining semantic and syntactic material, often including verbs or conjugations. Each bundle includes style controls such as relationship, tone, length and speech act, along with three real DODa sentences as references. The model is instructed not to copy or closely paraphrase them.
+
+The exploratory branch begins with structured scenarios rather than examples:
+
+```text
+domain: telecom
+intent: complain
+relationship: customer and worker
+medium: phone call
+tone: impatient
+length: 15–25 words
+speech act: question
+code switching: light French
+```
+
+These scenarios draw from pools of domains, intents, relationships, media and tones, including family, work, school, banking, gaming, social media, travel, healthcare and customer service.
+
+The two branches address opposite risks: grounding keeps the data connected to DODa, while exploration expands beyond its existing coverage. The target is:
+
+- 226,000 DODa-grounded
+- 226,000 exploratory
+
+## Targeted coverage and code-switching
+
+Synthetic data can fill gaps that human collections naturally leave behind, including long utterances, questions, numbers, customer-service interactions and newer vocabulary related to AI or social media.
+
+The pipeline also models Darija’s multilingual reality. In the exploratory branch, 30% of scenario seeds request code-switching, such as light French, French-heavy casual speech or occasional English technical terms. This is a sampling target, not a fixed proportion of the final corpus.
+
+Both Darija representations remain single-script. A borrowed word such as *update* may appear as:
+
+أبديت
+
+in Arabic script and as:
+
+update
+
+in Latin script. Likewise:
+
+- projet → بروجي
+- deja → ديجا
+
+This preserves the same utterance across scripts while avoiding the rendering problems of mixed Arabic and Latin text.
+
+## Generated does not mean automatically accepted
+
+Gemini produces candidate rows; it does not write directly into the dataset. The system overgenerates by 3% because some rows are expected to fail validation or deduplication.
+
+Every generated row passes deterministic checks. The pipeline verifies that Arabic and Latin fields use the correct scripts, rejects empty or implausibly long fields, checks that the two Darija forms are not absurdly different in length, and filters out translations that simply reproduce the English field. It also rejects exact copies of existing DODa sentences, obvious model leakage such as “as an ai” or “translation:”, malformed wrappers and excessive repetition. Finally, it hashes the normalized Arabic and Latin pair so duplicates are ignored automatically.
+
+The generator returns structured objects through a response schema rather than unconstrained prose. These checks do not prove that every accepted row is linguistically perfect, but they turn generation from a one-shot act of trust into an inspectable filtering process.
+
+![Controlled generation pipeline: sample constraints, generate with Gemini 3.1 Flash-Lite, validate and store — plus sampling weights and corpus composition](/media/how-we-expanded-doda-to-500K/controlled-generation.png)
+
+## The human data is still the anchor
+
+The 48,350 human DODa rows remain part of the final dataset because human language contains irregularities that generators often smooth away: unusual lexical choices, community-specific spellings, awkward formulations and constructions that may be statistically uncommon but natural.
+
+Synthetic text tends to be cleaner, sometimes suspiciously so. Human data therefore anchors the corpus to observed language, while synthetic data provides scale, controlled variation and access to linguistic regions that would otherwise be expensive to populate. The two types of data solve different problems and are most useful together.
+
+## 500,350 is the least interesting number here
+
+The progression is easy to summarize: 10K → 100K → 500K.
+
+But the important change is what is being counted. The early DODa resource gave machines structured information about Darija vocabulary, morphology, syntax, conjugations and spelling. Later work added sentence-level data and treated Arabic script as a first-class representation alongside Latin Darija. The new corpus represents complete utterances across Arabic Darija, Arabizi and English, with generated rows also carrying controlled variation in domain, register and code-switching.
+
+Reaching this scale did not require pretending that an LLM knows what the distribution of Moroccan Darija ought to be. DODa provides linguistic grounding, explicit sampling provides distributional control, Gemini provides language generation, deterministic checks provide filtering, human data provides the anchor and evaluation provides the reality check.
+
+That combination makes synthetic generation useful rather than merely convenient. For a language with two common writing systems, flexible spelling, heavy borrowing, code-switching, regional variation and relatively little training data, the ability to manufacture linguistic coverage intentionally is a significant advantage.
+
+Darija may be an inconvenient language for NLP. It is also a good test case for what controlled synthetic data can do.

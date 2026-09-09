@@ -1,0 +1,24 @@
+# Heavy / generated — keep Cursor focused on source
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+.vercel/
+.turbo/
+
+# Lockfiles are large and rarely useful as chat context
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs & local env
+*.log
+.env
+.env.*
+!.env.example
+
+# OS / IDE noise
+.DS_Store
+.idea/

@@ -1,0 +1,16 @@
+---
+title: "Packing in Transformer Models"
+slug: "packing"
+date: 2023-12-22
+description: "Packing involves concatenating multiple tokenized sequences into a single input, which we can aptly refer to as a 'pack.' This method has become increasingly important as many datasets exhibit skewed length distributions."
+category: "advanced"
+readingTime: "2 min"
+---
+
+To put it simply, packing involves concatenating multiple tokenized sequences into a single input, which we can aptly refer to as a 'pack.' This method has become increasingly important as many datasets exhibit skewed length distributions, with most sequences tending to be on the shorter side. Transformer models, however, require fixed-sized inputs, which is where packing comes into play.
+
+Traditionally, dealing with varying sequence lengths involves padding the shorter sequences with unused values to match the length of the longest sequence in the dataset. While this approach is functional, it introduces computational waste, as a substantial portion of the input is dedicated to padding, offering no meaningful information.
+
+Packing sequences together serves to eliminate this padding inefficiency. By concatenating multiple sequences into a single pack, we efficiently utilize the unused space within the input, minimizing computational waste. Moreover, this approach allows multiple sequences within a pack to be processed in parallel on a token level, effectively increasing the batch size with minimal overhead.
+
+In conclusion, packing sequences is a good strategy to optimize Transformer models for NLP tasks. By eliminating padding and exploiting unused space, it minimizes computational waste while increasing batch sizes, delivering a substantial boost in throughput. As NLP continues to advance, the concept of packing is likely to play a pivotal role in ensuring models are not only powerful but also efficient.

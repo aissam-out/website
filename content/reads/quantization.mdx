@@ -1,0 +1,20 @@
+---
+title: "Quantization: Shrinking Model Sizes for Efficient AI"
+slug: "quantization"
+date: 2023-12-21
+description: "Quantization involves performing computations and storing tensors at lower bitwidths than traditional floating-point precision, effectively reducing the memory and processing requirements of AI models."
+category: "advanced"
+readingTime: "2 min"
+---
+
+Quantization involves performing computations and storing tensors at lower bitwidths than traditional floating-point precision, effectively reducing the memory and processing requirements of AI models.
+
+The size of a machine learning model is determined by the number of parameters it contains and the precision with which these parameters are stored. Typically, models are represented in float32, float16, or bfloat16 precision. Full precision, or float32, occupies 4 bytes per parameter, while both bfloat16 and float16 are considered half-precision and take up only 2 bytes each.
+
+To calculate the actual model size in bytes, one can simply multiply the number of parameters by the size of the chosen precision in bytes. For instance, if we consider the bfloat16 version of a 70B model, with its 70 billion parameters, the total size would be a whopping 140 gigabytes! This illustrates the significant impact that precision choice can have on the storage requirements of AI models.
+
+Bfloat16 (BF16) and Float16 (FP16) are both half-precision data formats used in machine learning and numerical computations. The main difference between them lies in their precision levels. Bfloat16 offers slightly lower precision compared to Float16, with 8 bits dedicated to the exponent and 7 bits for the mantissa, while Float16 uses 5 bits for the exponent and 10 bits for the mantissa.
+
+What makes bfloat16 particularly interesting is its ability to store values within the same range as a 32-bit float but at lower precision. While it sacrifices some precision, it still offers remarkably similar prediction accuracy when compared to full 32-bit floats. The result is a substantial reduction in memory and processing costs, making it an attractive option for those seeking to strike a balance between model performance and efficiency.
+
+In summary, quantization is a powerful technique that enables the compression of machine learning models by reducing the precision of their parameters. By choosing lower bitwidths, such as bfloat16, we can significantly shrink the memory footprint and computational demands of AI models while retaining acceptable prediction accuracy.

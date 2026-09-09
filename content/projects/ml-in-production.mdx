@@ -1,0 +1,22 @@
+---
+title: ML in production
+slug: ml-in-production
+date: 2020-12-16
+description: A pipeline from trained model to API to container to cloud — Keras, Flask, Docker, and Heroku, written as something you can actually run.
+tags: [MLOps, Flask, Docker, Keras]
+github: https://github.com/aissam-out/ML-in-production
+featured: true
+---
+
+Training a model is the first third of the work. The rest is: expose it, freeze the environment, put it somewhere other people can hit it.
+
+[ML-in-production](https://github.com/aissam-out/ML-in-production) is a complete path:
+
+1. **Model** — Keras / TensorFlow, including pretrained backbones
+2. **API** — Flask, so the model is a HTTP interface rather than a notebook
+3. **Container** — Docker, so the next machine does not become a dependency puzzle
+4. **Deploy** — Heroku as the public endpoint
+
+The accompanying article is [Machine Learning in production: Keras, Flask, Docker and Heroku](/articles/ml-in-production). A follow-up covers running **multiple** Flask apps behind Nginx and Gunicorn.
+
+This is still the shape I use when someone asks “how do we ship this?” — swap the cloud, keep the seams.

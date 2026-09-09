@@ -1,0 +1,24 @@
+---
+title: "Causal vs. Masked Language Modeling"
+slug: "causal-vs-masked-language-modeling"
+date: 2023-12-24
+description: "In the realm of CLM, language models are trained with a unidirectional focus. This means that the model's training objective is to predict the next word or token in a sequence"
+category: "general"
+readingTime: "2 min"
+---
+
+Causal language modeling and masked language modeling are two different approaches to training and using language models.
+
+Causal Language Modeling (CLM):
+
+In the realm of CLM, language models are trained with a unidirectional focus. This means that the model's training objective is to predict the next word or token in a sequence, drawing context exclusively from the preceding tokens. During training, the model has full access to all the tokens that precede the target token in the sequence.
+
+CLM shines in tasks where text generation is key. Whether it's crafting compelling stories, answering complex questions, or translating languages, CLM's unidirectional approach allows it to excel in these creative and generative tasks.
+
+Masked Language Modeling (MLM)
+
+On the flip side, MLM employs a bidirectional strategy. In MLM, certain tokens within a sequence are masked or hidden, and the model's mission is to predict these masked tokens based on the context provided by the surrounding tokens. During training, specific tokens are substituted with a special "[MASK]" token, and the model learns to predict the original tokens that were concealed.
+
+MLM finds its strength in a different set of NLP tasks. Text classification, named entity recognition, and sentiment analysis are among the challenges where MLM's bidirectional understanding proves highly effective. The model's ability to contextualize information from both directions makes it a valuable asset in these contexts.
+
+In essence, while CLM focuses on predicting the next token in a sequence with unidirectional context, MLM adopts a bidirectional approach by concealing and predicting masked tokens. These two methods, each with its own strengths and applications, have significantly advanced the capabilities of language models in the world of natural language processing. Whether you're crafting stories or extracting insights from text, understanding these approaches can help you choose the right tool for the job.

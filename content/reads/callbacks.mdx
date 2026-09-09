@@ -1,0 +1,14 @@
+---
+title: "Callbacks"
+slug: "callbacks"
+date: 2023-04-02
+description: "Callbacks are specialized objects that play a crucial role in customizing the behavior of the training loop within the PyTorch Trainer. These objects offer a unique vantage point"
+category: "general"
+readingTime: "2 min"
+---
+
+Callbacks are specialized objects that play a crucial role in customizing the behavior of the training loop within the PyTorch Trainer. These objects offer a unique vantage point, allowing users to inspect the training loop's state, report progress, log data on platforms like TensorBoard, and even make important decisions, such as early stopping. Their primary function is to provide information and influence the training process, making them indispensable for monitoring and optimizing machine learning models.
+
+It's important to note that callbacks are inherently "read-only" in nature. This means that, with the exception of the TrainerControl object they return, callbacks do not possess the capability to directly alter anything within the training loop. If you find yourself needing to make substantial modifications to the training loop itself, a better approach would be to subclass the Trainer and override the specific methods that require customization. This gives you greater flexibility and control over the training process.
+
+In conclusion, callbacks are a powerful tool in the PyTorch Trainer toolbox, allowing you to finely tune and monitor the training process with ease. While they may be "read-only," their influence on the training loop is invaluable. By mastering the art of callbacks, you'll have the capability to take your machine learning projects to new heights, ensuring your models reach their full potential.

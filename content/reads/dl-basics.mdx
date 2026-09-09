@@ -1,0 +1,92 @@
+---
+title: "Deep Learning: The basics"
+slug: "dl-basics"
+date: 2023-01-02
+description: "Understanding essential concepts is essential. Let's embark on a journey through the core elements that power NLP with deep learning"
+category: "foundations"
+readingTime: "2 min"
+---
+
+Are you excited to explore the world of Natural Language Processing (NLP) through the lens of deep learning? Whether you're new to the field or a seasoned practitioner, understanding essential concepts is essential. Let's embark on a journey through the core elements that power NLP with deep learning, highlighting the most commonly used approaches.
+
+1. Activation Functions: Igniting NLP Models
+
+Activation functions play a pivotal role in NLP tasks, and some shine brighter than others:
+
+1.1. ReLU (Rectified Linear Unit):
+
+Pros: Simple and effective, often used in NLP.
+
+Cons: Potential for "dying" neurons.
+
+1.2. Sigmoid:
+
+Pros: Outputs between 0 and 1, suitable for binary sentiment analysis.
+
+Cons: Vulnerable to vanishing gradients.
+
+1.3. Tanh (Hyperbolic Tangent):
+
+Pros: Outputs between -1 and 1, aiding convergence in some NLP models.
+
+Cons: Similar vanishing gradient issues as sigmoid.
+
+2. Loss Functions: Measuring Linguistic Gaps
+
+Loss functions are the yardstick for measuring the gap between predictions and actual text data. In NLP, you'll frequently encounter these:
+
+2.1. Cross-Entropy:
+
+Pros: Perfect for NLP classification tasks, such as sentiment analysis and text categorization.
+
+Cons: Requires softmax activation for proper use.
+
+2.2. Categorical Cross-Entropy:
+
+Pros: Ideal for multi-class classification in NLP.
+
+Cons: Requires one-hot encoding of labels.
+
+3. Gradient Descent: Navigating the Textual Terrain
+
+Gradient descent acts as the GPS for neural networks. It guides the model towards the optimal solution. Here's what you should know:
+
+Pros: Effective in finding minima over time, extensively used in NLP.
+
+Cons: Can get trapped in local minima under certain conditions.
+
+4. Optimizers: Fine-Tuning NLP Models
+
+Optimizers fine-tune NLP models, and the choice matters for efficiency and performance. In NLP, you'll often encounter:
+
+4.1. Adam (Adaptive Moment Estimation):
+
+Pros: Balances momentum and adaptive learning rates, widely favored in NLP.
+
+Cons: Sensitive to learning rate selection.
+
+4.2. SGD (Stochastic Gradient Descent):
+
+Pros: Simplicity and reliability, but less popular in modern NLP due to slower convergence.
+
+5. Backpropagation
+
+Backpropagation, or "backprop" for short, is like a teacher's feedback loop for a neural network. It's a way for the network to learn from its mistakes by checking how far off its predictions were and adjusting its internal settings (weights) accordingly. Think of it as a process of continuous refinement, like a student practicing until they get the answers right.
+
+6. Regularization: Safeguarding Against Overfitting
+
+In NLP, preventing overfitting is paramount. Two valuable regularization methods are:
+
+6.1. Dropout:
+
+Pros: Effective at preventing overfitting in NLP models.
+
+Cons: Increases training time due to randomness.
+
+6.2. L2 Regularization (Weight Decay):
+
+Pros: Discourages large weight values, useful in NLP for reducing overfitting.
+
+Cons: May not eliminate irrelevant features entirely.
+
+As you embark on your NLP journey with deep learning, remember that the choice of activation functions, loss functions, gradient descent methods, optimizers, backpropagation, and regularization techniques depends on the specific task and dataset. Experimentation and hands-on practice will empower you to excel in NLP using the power of deep learning. Happy NLP adventures!

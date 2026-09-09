@@ -1,0 +1,38 @@
+---
+title: "N-Gram Language Models: A Beginner's Guide"
+slug: "n-gram-language-models"
+date: 2023-05-13
+description: "N-gram language models are a class of statistical language models that assign probabilities to sequences of words. They are widely used in NLP"
+category: "foundations"
+readingTime: "2 min"
+---
+
+N-grams are a fundamental concept in natural language processing (NLP) and text analysis. They provide a simple yet powerful way to extract information from text data. In this brief post, we'll explore what N-grams are and how they can be used for text analysis.
+
+What Are N-grams?
+
+N-grams are contiguous sequences of N items from a given sample of text or speech. These items can be words, characters, or even subwords. The "N" in N-grams represents the number of items in each sequence. For instance, in a bigram (2-gram), the text is broken into pairs of consecutive items, usually words.
+
+Why Are N-grams Useful?
+
+N-grams capture local patterns and dependencies in text data. By analyzing N-grams, we can:
+
+1. Language Modeling: N-grams help in predicting the likelihood of the next word or character in a sequence. This is vital in tasks like autocomplete and text generation.
+
+2. Information Retrieval: In search engines, N-grams are used to match user queries with relevant documents. For instance, if a user searches for "machine learning," documents containing the bigram "machine learning" are ranked higher.
+
+3. Text Classification: N-grams can be used as features in machine learning models for tasks like sentiment analysis or spam detection. These models learn to recognize patterns associated with specific categories.
+
+Example:
+
+Consider the sentence: "N-grams are important for text analysis."
+
+- For bigrams (2-grams): ["N-grams", "grams are", "are important", "important for", "for text", "text analysis"]
+
+- For trigrams (3-grams): ["N-grams are important", "are important for", "important for text", "for text analysis"]
+
+Limitations:
+
+While N-grams are valuable, they have limitations. They don't capture long-range dependencies in text and can be sensitive to changes in word order. Additionally, as N increases, the number of unique N-grams can grow significantly, leading to increased memory and computational requirements.
+
+In conclusion, N-grams are a versatile and straightforward technique for text analysis. They find applications in various NLP tasks and provide valuable insights into the structure of textual data. Understanding N-grams is a crucial step for anyone working with text in the field of natural language processing.

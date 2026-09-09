@@ -1,0 +1,233 @@
+---
+title: "Teaching TranslateGemma Moroccan Darija: What Worked, What Broke, and What 32.8 BLEU Actually Means"
+slug: "teaching-translategemma-darija"
+date: 2026-09-07
+description: "Fine-tuning TranslateGemma 4B for Arabic-script Darija and Arabizi, moving the run between GPU clouds late in training, and figuring out whether 32.82 BLEU was actually good."
+series: "Darija"
+tags: [NLP, Darija, TranslateGemma, Fine-tuning]
+---
+
+![TranslateGemma 4B + LoRA translating Darija in Arabic script and Arabizi into English, set against a Moroccan evening workspace](/media/teaching-translateGemma-darija/main.png)
+
+Fine-tuning a 4B translation model for Arabic-script Darija and Arabizi, moving the run between GPU clouds late in training, and figuring out whether the result was actually good.
+
+The clean version of this project fits in a few lines.
+
+I fine-tuned Google’s TranslateGemma 4B to translate Moroccan Darija into English. On an external evaluation built from [TerjamaBench](https://huggingface.co/datasets/atlasia/TerjamaBench), BLEU went from 7.49 to 32.82, chrF from 31.15 to 52.10, and TER dropped from 116.11 to 53.53.
+
+The part I like even more is what happened with Arabizi. The base model scored only 3.59 BLEU on Latin-script Darija. After training, it reached 31.91. Arabic-script Darija ended at 33.72, which means a gap of more than nine BLEU points became less than two.
+
+That summary is accurate. It also hides almost everything that made the project interesting.
+
+The run started on RunPod, initially looked much slower than it had any right to be, moved to another GPU provider with roughly a third of training left because I was watching both the loss curve and my remaining credit, then refused to resume because PyTorch had changed how checkpoints were deserialized. Once it finally finished, I loaded the model on my MacBook Air and found that a 4B translation model could feel surprisingly responsive locally.
+
+Somewhere along the way, this stopped being just a fine-tuning experiment.
+
+<MetricHero />
+
+## Why TranslateGemma 4B
+
+TranslateGemma is Google’s translation-focused Gemma family. It uses a dedicated translation template where the source and target languages are explicitly provided instead of relying on a generic conversational prompt. The 4B checkpoint was especially attractive for this project because it sits in a useful middle ground: large enough to inherit substantial multilingual and translation capability, while still small enough to fine-tune on a single RTX 4090 and later run locally on consumer hardware.
+
+I could have started with a 12B or 27B model. That would also have made every training mistake several times more expensive. For a narrow problem such as Darija to English translation, I wanted to first find out how far the smallest serious member of the family could be pushed.
+
+The task has another annoying property. Darija has no dedicated language code in TranslateGemma, and people write it in both Arabic script and Latin-script Arabizi. During training, both were therefore passed through the Arabic-to-English translation route while the model learned from the examples what Moroccan Darija actually looked like.
+
+That slightly awkward setup turned out to work much better than I expected.
+
+<ScriptGapChart />
+
+## A very short paragraph about the data
+
+The model was trained from a corpus of 500,350 semantic rows, built from human DODa data plus a much larger controlled synthetic expansion. Each semantic row connects the same meaning across English, Arabic-script Darija, and Latin-script Darija. During preparation, each row could therefore become both an Arabic→English and an Arabizi→English example, while the two representations were kept together during splitting to avoid leakage across splits. Human DODa examples were sampled 3× during training, and I removed 57 semantic groups that overlapped with the external benchmark before the split. After expansion and human-data upsampling, the final training stream contained 1,185,690 directional examples. I wrote separately about how that dataset was generated in [How We Expanded DODa to 500K Darija Examples](/articles/how-we-expanded-doda-to-500k), because there is enough trouble in synthetic data to deserve its own article.
+
+## Training a 4B model without training 4B parameters
+
+I used QLoRA rather than full fine-tuning. The base model was loaded in 4-bit NF4, the vision part was frozen, and LoRA adapters were attached to the language-model attention and MLP projections. Training used bfloat16 compute on RTX 4090 GPUs, an effective batch size of roughly 64, gradient checkpointing, and a single epoch. The complete epoch contained 18,527 optimizer steps and took about 28 hours of active training time, split across RunPod and Vast.ai after the mid-run migration.
+
+The calendar time was longer because the run included checkpoint transfers, environment failures, the cloud migration, and evaluation. I prefer quoting active training time here because it is the more meaningful compute number.
+
+There is a practical reason I like adapter training for this sort of experiment. The final trained artifact is only a few hundred megabytes, while the base TranslateGemma weights remain unchanged. Hugging Face can therefore hold the adapter, checkpoints, metrics, manifest, and reproducibility files without me duplicating an 8+ GB base checkpoint every time I change something.
+
+The first version of the training setup was much less satisfying. GPU utilization spent far too much time around 20 to 30 percent and the projected runtime was ugly. That is where the project gave me one of its more useful reminders: before buying faster hardware, check whether the hardware you already rented is actually doing anything.
+
+I changed the data and batching path, added throughput-aware configuration, and got the 4090 spending much more of its time on the model instead of waiting for Python. The training estimate improved enough that finishing the experiment became reasonable.
+
+<TrainingCurves caption="W&B train/loss declines toward ~0.256. Eval/loss reaches its minimum at step 13,000 and then rises modestly, an early sign that additional training was starting to help the training distribution more than the validation set." />
+
+The obvious question is why I kept training after validation loss reached its minimum around step 13,000. The increase afterward was modest, and eval/loss is a token-level loss on the internal validation split rather than the external translation metric I ultimately cared about. The run was also designed as a single epoch, with the learning rate already decaying toward zero, so I chose to finish the epoch rather than use a small late movement in validation loss as an early-stopping signal. Checkpoints were preserved along the way, which meant the earlier state was not lost. In retrospect, I would also evaluate the best-validation checkpoint against TerjamaBench and configure future runs to retain the best model automatically. For this experiment, though, the final 18,527-step model is the one whose results I report throughout this article.
+
+## Then I moved the training run to another cloud
+
+RunPod worked well, but I was paying around $0.74/hour for the 4090 option I was using. At the point where most of the expensive experimental mistakes had already happened, I found suitable Vast.ai capacity around $0.40/hour.
+
+Those are the prices I personally saw during this run, rather than general price claims about either platform.
+
+Because checkpoints were already being pushed to Hugging Face, the migration looked conceptually simple:
+
+```text
+stop RunPod
+        ↓
+download latest checkpoint
+        ↓
+start RTX 4090 on Vast
+        ↓
+resume training
+```
+
+The checkpoint had other plans.
+
+The first Vast environment used a PyTorch version below 2.6 and hit a safety check requiring PyTorch 2.6 or newer because of CVE-2025-32434, a critical vulnerability affecting `torch.load` in earlier releases. Moving to PyTorch 2.6 fixed that problem, but also exposed a checkpoint-compatibility issue of its own.
+
+PyTorch 2.6 also changed `torch.load` so that `weights_only=True` became the default, a deliberate security improvement that also introduced backward-compatibility consequences for some serialized objects.
+
+The Hugging Face checkpoint itself contained several types of state:
+
+- model / adapter
+- optimizer
+- scheduler
+- trainer state
+- RNG state
+
+The failure happened when restoring `rng_state.pth`. The safer unpickler rejected a NumPy reconstruction object:
+
+```text
+Unsupported global:
+numpy.core.multiarray._reconstruct
+```
+
+At this stage, starting again from step zero was technically possible and emotionally unacceptable.
+
+The recovery was fairly surgical. I downloaded the checkpoint from Hugging Face, temporarily removed only `rng_state.pth`, and resumed the Trainer from everything else.
+
+That preserved the model weights, optimizer state, learning-rate scheduler, trainer state, and global step. It did sacrifice exact random-number continuity across the migration.
+
+This distinction matters. A checkpoint can be good enough to recover training without being sufficient for bit-for-bit reproduction of the next batch sequence.
+
+When the resumed progress bar jumped to roughly 13,001 / 18,527, I knew the important state had survived.
+
+<EngineeringTimeline />
+
+## So, did the model actually get better?
+
+Training loss is useful, but a translation model eventually has to translate something it has not seen.
+
+For the external evaluation I used [TerjamaBench](https://huggingface.co/datasets/atlasia/TerjamaBench), a manually reviewed Moroccan Darija benchmark created by AtlasIA. It contains 850 entries spanning Arabic-script Darija, Arabizi, and English, with categories covering things such as code-switching, spelling variation, idioms, humor, dates, named entities, dialectal variation, and longer sentences.
+
+The published benchmark is primarily presented in the English→Darija direction. My task was Darija→English, so I reversed it and evaluated both Darija representations against their English reference:
+
+- 850 Arabic-script Darija → English
+- 850 Arabizi → English
+
+One detail matters here: AtlasIA’s published benchmark results use a filtered English→Darija setup, while I evaluated all 850 available rows in the opposite direction, including the dialect-variation category. The scores in this article should therefore be treated as a separate reversed TerjamaBench evaluation, rather than compared directly with the published TerjamaBench leaderboard.
+
+The original TranslateGemma checkpoint and the fine-tuned model were evaluated through the same generation path.
+
+The result:
+
+| Metric | Base | Fine-tuned |
+| --- | ---: | ---: |
+| BLEU ↑ | 7.49 | 32.82 |
+| chrF ↑ | 31.15 | 52.10 |
+| TER ↓ | 116.11 | 53.53 |
+
+BLEU rewards n-gram overlap with the reference translation. chrF performs a similar comparison at character level and is often more forgiving of legitimate wording differences. TER estimates how much editing would be required to transform the model output into the reference, so lower is better.
+
+None of these metrics understands language like a human evaluator does. Together, though, the direction is difficult to misread. BLEU increased by more than 25 points, chrF gained about 21 points, and TER was cut by more than half.
+
+The script breakdown is even more satisfying:
+
+| | Base BLEU | Fine-tuned BLEU |
+| --- | ---: | ---: |
+| Arabic script | 12.62 | 33.72 |
+| Arabizi | 3.59 | 31.91 |
+| Gap | 9.03 | 1.81 |
+
+The model learned Arabizi particularly aggressively. That was one of the main reasons for building every training example around paired Arabic and Latin representations of the same meaning, and the final numbers suggest that the strategy transferred outside the training corpus.
+
+## Where it works, and where Morocco wins
+
+The overall score hides a lot.
+
+Long sentences were among the strongest categories, reaching 47.62 BLEU in Arabic script and 46.05 in Arabizi. Mixed-language examples were also strong at 41.04 and 43.18 respectively. Named entities, common phrases, and misspellings performed reasonably well too.
+
+Then we arrive at idioms.
+
+Arabic-script idioms scored 6.11 BLEU.
+
+Arabizi idioms scored 2.63.
+
+Apparently half a million rows were still insufficient preparation for Moroccans deciding that a sentence should mean something entirely unrelated to the words inside it.
+
+That is useful information. Dialectal variation also stayed around 19 BLEU, while humor, religion, and numbers/dates remained below the overall score. These categories tell me much more about the next dataset iteration than another random 500,000 generated sentences would.
+
+<TopicPerformanceChart />
+
+One result in the benchmark also deserves a small warning. Arabic single-word examples produced 0 BLEU while chrF was 62.66. Corpus BLEU becomes unreliable on tiny, very short subsets because higher-order n-grams may simply not exist. The zero makes for a dramatic screenshot and a terrible conclusion. For that category, chrF and direct inspection are much more useful.
+
+## The 70 BLEU result I would rather not advertise
+
+The internal test set produced an overall BLEU score of 69.98.
+
+If I wanted the largest number possible in a LinkedIn post, I could probably stop there.
+
+The split tells the real story:
+
+| Internal test | BLEU |
+| --- | ---: |
+| Synthetic Arabic | 71.37 |
+| Synthetic Arabizi | 70.52 |
+| Human Arabic | 29.81 |
+| Human Arabizi | 30.83 |
+
+The synthetic examples were generated from the same broad process as most of the training corpus. They are held out, so the model did not memorize those exact rows, but they still share the linguistic preferences of the generator. A model trained extensively on that distribution becomes very good at that distribution.
+
+The human subsets land around 30 BLEU. The external TerjamaBench score lands at 32.82.
+
+That agreement is much more reassuring to me than the 70.
+
+<HumanSyntheticChart />
+
+## How good is 32.82 in the wider Darija landscape?
+
+There still is no clean public Darija→English leaderboard where every open system is evaluated on exactly the same test set, so comparing reported BLEU values requires some discipline.
+
+Rosca, Issam, and Spanakis reported 26.79 BLEU for their best Darija→English system in their 2025 low-resource MT study, evaluated on their DODa test setup.
+
+A much newer open model, `oddadmix/50M-Darija-English-v1`, reports 39.72 BLEU and 53.22 chrF on its own held-out 3,000-pair evaluation set. It is particularly impressive because it has only about 52M parameters and handles both Arabic-script Darija and Arabizi.
+
+Those numbers cannot be ranked directly against my 32.82 because the datasets differ. A model can gain or lose many BLEU points simply by changing domains, reference style, sentence length, or how close the test distribution is to its training data.
+
+The claim I am comfortable making today is narrower: this fine-tuned TranslateGemma is competitive with strong open Darija→English work, and its external Arabizi performance is particularly encouraging.
+
+The obvious next experiment is to run the strongest open models on these same 1,700 reversed TerjamaBench inputs. If I do that, the comparison becomes much more interesting and much harder to argue with.
+
+## The surprisingly nice ending: it runs on my Mac
+
+Once the cloud training was finished, I wanted a very ordinary test. Type Darija, get English back.
+
+I loaded the 4B base model and the LoRA adapter on my M4 MacBook Air with 24 GB of unified memory through Apple’s MPS backend. My first attempt produced rows of `<pad>` tokens because of a local precision issue. After moving the inference path to bfloat16 and matching the exact prompt/tokenization route used during evaluation, the translations started behaving normally.
+
+What surprised me afterward was the speed.
+
+I have not benchmarked it properly yet, so I am intentionally avoiding numbers here. Subjectively, though, the interaction feels fast enough that the model behaves like a local translator rather than a research checkpoint you wait around for.
+
+That matters more than I expected when I chose the 4B model.
+
+A formal benchmark should come next: warm latency, first-token latency, output tokens per second, p50, p95, and peak unified memory across a representative prompt set. Until then, “surprisingly fast on my Mac” is an observation rather than a performance claim.
+
+Still, it is a nice observation.
+
+## What I would do differently
+
+The biggest lesson from this project is that the model itself caused fewer problems than everything surrounding it.
+
+I would benchmark throughput before committing to any multi-day training estimate. I would test checkpoint restoration early, while restarting still feels cheap. I would pin the entire runtime more aggressively, including container, PyTorch, Transformers, PEFT, CUDA, and evaluation libraries. I would also treat the remote checkpoint repository as part of the system architecture from the start, because the ability to throw away a GPU instance and continue somewhere else ended up being one of the most valuable properties of the whole setup.
+
+The evaluation changed my view of the data too. Another million generic synthetic sentences would probably increase the number on the dataset card more than the usefulness of the model. Idioms, regional variation, cultural expressions, humor, and difficult human examples are where I would spend the next annotation budget.
+
+And I would keep the 4B model.
+
+The larger TranslateGemma variants may eventually improve quality, but this run showed that a relatively small model can move from 7.49 to 32.82 BLEU, almost eliminate its Arabic-versus-Arabizi gap, handle code-switched Darija surprisingly well, and still remain practical enough to run interactively on a laptop.
+
+That is a pretty good place for version one to end.

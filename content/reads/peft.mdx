@@ -1,0 +1,14 @@
+---
+title: "Parameter-Efficient Fine-Tuning (PEFT)"
+slug: "peft"
+date: 2023-12-19
+description: "PEFT methods focus on fine-tuning only a limited subset of additional model parameters, significantly reducing both computational and storage requirements while maintaining performance similar to fully fine-tuned models."
+category: "advanced"
+readingTime: "2 min"
+---
+
+PEFT (Parameter-Efficient Fine-Tuning) offers an efficient way to adapt large pretrained models to various downstream applications without the need to fine-tune every parameter, which can be extremely expensive. PEFT methods focus on fine-tuning only a limited subset of additional model parameters, significantly reducing both computational and storage requirements while maintaining performance similar to fully fine-tuned models. This approach makes it more feasible to train and manage large language models (LLMs) on standard consumer hardware.
+
+The traditional approach involves fine-tuning all model parameters individually for each downstream task, but this has become increasingly cost-prohibitive and impractical due to the immense number of parameters in modern models. Instead, PEFT promotes efficiency by training a smaller set of prompt parameters or utilizing techniques like low-rank adaptation (LoRA) to decrease the number of trainable parameters.
+
+In summary, PEFT empowers you to achieve high performance with a fraction of the computational and storage requirements compared to traditional fine-tuning methods. It gives you the possibility of scaling down without sacrificing performance.
