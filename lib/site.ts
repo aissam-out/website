@@ -3,7 +3,7 @@ export const site = {
   domain: "https://epistemicnoise.com",
   author: "Aissam Outchakoucht",
   email: "aissam.outchakoucht@gmail.com",
-  tagline: "I build systems that understand language. I write about why we often don’t.",
+  tagline: "I build systems that learn from the world. I write about why we struggle to.",
   description:
     "Aissam Outchakoucht builds language, speech, and agentic AI systems, and writes about uncertainty, perspective, intelligence, and the strange business of knowing things.",
   gaId: "G-LSTZ3JZNVP",

@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ButtonLink";
 import { site } from "@/lib/site";
 
-const lineOne = ["I", "build", "systems", "that", "understand."];
-const lineTwo = ["I", "write", "about", "why", "we", "often", "don’t."];
+const sentences = site.tagline.match(/[^.!?]+[.!?]/g) ?? [site.tagline];
+const lineOne = (sentences[0] ?? "").trim().split(/\s+/).filter(Boolean);
+const lineTwo = (sentences[1] ?? "").trim().split(/\s+/).filter(Boolean);
 
 export function Hero() {
   const [ready, setReady] = useState(false);
@@ -22,9 +23,9 @@ export function Hero() {
 
   const renderWords = (words: string[], startDelay: number) =>
     words.map((word, index) => {
-      const punct = word.match(/[.]$/)?.[0] ?? "";
-      const bare = word.replace(/[.]$/, "");
-      const emphasize = bare.toLowerCase() === "don’t";
+      const punct = word.match(/[.!?]$/)?.[0] ?? "";
+      const bare = word.replace(/[.!?]$/, "");
+      const emphasize = bare.toLowerCase() === "struggle";
       return (
         <span key={`${bare}-${index}`}>
           <span
@@ -136,10 +137,11 @@ export function Hero() {
               transitionDelay: `${120 + (lineOne.length + lineTwo.length) * 70 + 80}ms`,
             }}
           >
-            I&apos;m {site.author}, an AI engineer building language, speech, and
-            agentic systems. This is where I share things I build, ideas I&apos;m
-            exploring, and essays about uncertainty, perspective, intelligence, and
-            the strange business of knowing things.
+            I&apos;m {site.author}, an AI engineer working across language,
+            speech, and intelligent systems. I use this space to share things I
+            build, ideas I&apos;m exploring, and essays about uncertainty,
+            perspective, intelligence, and the strange business of knowing
+            things.
           </p>
         </div>
 
