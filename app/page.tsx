@@ -73,7 +73,7 @@ export default function HomePage() {
           eyebrow="Writing"
           title="Recent"
           emphasis="pages"
-          href="/reads"
+          href="/notes"
           cta="Browse notes"
           description="Notes, essays, and projects: the latest across the rooms."
         />

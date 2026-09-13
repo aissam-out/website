@@ -2,15 +2,23 @@
 title: "Structured outputs"
 slug: "structured-outputs"
 date: 2026-07-03
-description: "Free-form chat is for people. Downstream systems need schemas. Constrained decoding turns that preference into an engineering contract."
+description: "Free-form language is an excellent interface for people. It is usually a bad interface between software components."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-A conversational UI can tolerate messy prose. A booking API, a CRM write, or an agent tool call cannot. Structured outputs are how you make the model speak in contracts instead of vibes.
+Free-form language is an excellent interface for people. It is usually a bad interface between software components.
 
-The practical pattern is to declare a schema (JSON Schema, tool arguments, or a typed object) and require the model to fill it. Constrained decoding and schema-aware APIs reduce the “almost valid JSON” tax that otherwise becomes a pile of brittle parsers and retries.
+If a model is selecting an action, creating a database record or passing arguments to another service, I want its output expressed as a contract: known fields, known types, controlled enums and explicit required values.
 
-This is not only about formatting. A schema forces product decisions: which fields are required, which enums are allowed, what to do when the model is unsure. Those decisions belong in the interface, not in post-hoc string cleanup.
+Asking for JSON in a prompt is only the weak version of this. Schema-constrained generation goes further by restricting what can be generated so that an entire class of failures disappears: missing braces, invented fields, invalid types and parsers whose main purpose is extracting JSON from markdown fences.
 
-If your pipeline still depends on “extract the JSON from the markdown fence and hope,” you do not have structured generation yet. You have a parser fighting a probability distribution.
+But syntactic validity solves only one boundary.
+
+A model can produce an object that perfectly satisfies the schema and is still wrong. An account ID can have the correct type and refer to the wrong account. Two valid fields can contradict one another. A legal enum value can be inappropriate for the current state.
+
+So I treat structured generation as one validation layer.
+
+The schema constrains what the model can express. Deterministic application code still enforces business rules, permissions, cross-field invariants and whether the proposed action is allowed at all.
+
+This distinction matters even more for agents: producing a well-formed action is not the same thing as being authorized to execute it.

@@ -16,7 +16,7 @@ export const site = {
   },
 } as const;
 
-/** User-facing labels for content kinds. URLs stay /reads, /thoughts, /projects. */
+/** User-facing labels for content kinds. Public URLs: /notes, /essays, /projects. */
 export const kindLabels = {
   reads: {
     singular: "Note",
@@ -47,8 +47,8 @@ export const kindLabels = {
 export const nav = [
   { href: "/about", label: "About" },
   { href: "/projects", label: "Projects" },
-  { href: "/reads", label: "Notes" },
-  { href: "/thoughts", label: "Essays" },
+  { href: "/notes", label: "Notes" },
+  { href: "/essays", label: "Essays" },
 ] as const;
 
 export const marqueeItems = [
@@ -78,14 +78,14 @@ export const rooms = [
       "Darija, voice, chatbots, and production AI systems, from early shipping to current work.",
   },
   {
-    href: "/reads",
+    href: "/notes",
     eyebrow: "03",
     title: "Notes",
     description:
       "NLP in two minutes. Foundations to production AI, packed into a short note.",
   },
   {
-    href: "/thoughts",
+    href: "/essays",
     eyebrow: "04",
     title: "Essays",
     description:
@@ -97,7 +97,7 @@ export const beliefs = [
   {
     title: "Measure the uncertainty",
     body: "A lot of what people call knowledge is borrowed confidence. The useful move is to notice where the chain of justification actually stops.",
-    href: "/thoughts",
+    href: "/essays",
     linkLabel: "Read the essays",
   },
   {
@@ -115,7 +115,7 @@ export const beliefs = [
   {
     title: "Write in public",
     body: "Short notes, long essays, shipped projects. Writing is how the work gets inspected: by you first, then by anyone else.",
-    href: "/reads",
+    href: "/notes",
     linkLabel: "Browse the notes",
   },
 ] as const;
@@ -123,7 +123,7 @@ export const beliefs = [
 export const stats = [
   { value: "8+", label: "Years in AI" },
   { value: "500k", label: "DODa entries" },
-  { value: "50", label: "Two-minute notes" },
+  { value: "54", label: "Two-minute notes" },
   { value: "11", label: "Papers on Scholar" },
 ] as const;
 
@@ -179,6 +179,10 @@ export const noteStarters = [
       "prompt-injection",
       "dpo",
       "speaker-embeddings",
+      "when-the-model-stops-being-the-bottleneck",
+      "false-positives-are-an-architecture-decision",
+      "evaluation-set-becomes-part-of-the-product",
+      "gpu-utilization-is-the-wrong-question",
       "rag",
       "function-calling",
       "rlhf",

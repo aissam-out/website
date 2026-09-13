@@ -1,0 +1,32 @@
+---
+title: "The evaluation set becomes part of the product"
+slug: "evaluation-set-becomes-part-of-the-product"
+date: 2026-08-20
+description: "The first evaluation set for an AI system is usually built before anyone knows how the system will fail."
+category: "advanced"
+readingTime: "2 min"
+---
+
+The first evaluation set for an AI system is usually built before anyone knows how the system will fail.
+
+You collect representative examples, define expected behavior and decide whether the system is good enough to release. That works initially, but real users eventually discover cases nobody thought to include.
+
+Those failures should become part of evaluation.
+
+I find the analogy with regression testing useful. In normal software, a serious bug often becomes a test. The bug gets fixed, and the test makes sure the same failure does not quietly return months later.
+
+AI systems need the same habit.
+
+If a RAG system fails because chunking separated a fact from its heading, fix the chunker and keep the failed query as an evaluation case. If an agent calls the right tool with the wrong user's information, fix the state handling and create a test that detects cross-user leakage. If a new model improves average quality while making a narrow but important category worse, that category should remain visible instead of disappearing inside the overall score.
+
+Over time, the evaluation set starts recording the history of the system.
+
+It helps to organize those examples into slices. Retrieval failures, malformed tool arguments, ambiguous questions, unavailable tools, missing data and permission errors should not all collapse into one number.
+
+A model version moving from 87% to 89% overall sounds good. If permission-handling cases simultaneously fall from 98% to 72%, the aggregate result hides something important.
+
+I would also keep representative cases separate from regression cases. One measures normal product behavior. The other protects lessons already learned.
+
+After enough iterations, a good evaluation suite becomes more than a benchmark. It becomes a record of how the system has failed before and what the team decided correct behavior should be.
+
+That makes it part of the product itself.

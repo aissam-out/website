@@ -1,0 +1,34 @@
+---
+title: "GPU utilization is the wrong question"
+slug: "gpu-utilization-is-the-wrong-question"
+date: 2026-08-28
+description: "Seeing 95% GPU utilization feels reassuring. The expensive hardware is busy, so the workload must be well optimized."
+category: "advanced"
+readingTime: "2 min"
+---
+
+Seeing 95% GPU utilization feels reassuring. The expensive hardware is busy, so the workload must be well optimized.
+
+Unfortunately, that percentage tells us much less than it appears to.
+
+A GPU can remain active almost continuously while still doing far less useful work than it could. Poor batch shapes, excessive padding, memory bottlenecks, synchronization, repeated transfers or inefficient kernels can all produce high utilization while throughput remains disappointing.
+
+The application around the GPU matters too.
+
+CPU preprocessing may be too slow. Inputs may be processed one at a time when batching would work better. The model may be initialized repeatedly. Data may move between CPU and GPU more often than necessary. A pipeline may recompute expensive results because intermediate outputs were never persisted.
+
+All of these can hurt performance while the GPU dashboard still looks healthy.
+
+This is why I prefer starting with the quantity the system actually needs.
+
+For an offline audio pipeline, that could be processed recordings per minute. For an LLM service, it might be tokens per second under a latency target. Once that number is known, GPU metrics help explain why it is good or bad.
+
+Then profiling becomes useful. How much time goes into preprocessing? How long is inference? Is the accelerator waiting for data? Does increasing batch size improve throughput? Does adding workers help, or does it simply create contention elsewhere?
+
+There is another reason utilization is a weak target. Sometimes keeping hardware below 100% is desirable. An online service may need headroom for bursts, while an offline batch workload can afford to push throughput much harder.
+
+The right utilization therefore depends on the workload.
+
+GPU utilization is useful evidence. It is not the optimization objective.
+
+What I ultimately care about is how much useful work the hardware completes in the available time.

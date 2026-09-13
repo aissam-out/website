@@ -2,15 +2,21 @@
 title: "RAG failure modes"
 slug: "rag-failure-modes"
 date: 2026-06-27
-description: "Most RAG bugs are not generator bugs. Wrong chunks, stale indexes, and retrieval that never had the answer will beat a strong model every time."
+description: "RAG failures become easier to debug once “RAG quality” stops being treated as one thing."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-RAG looks clean on a whiteboard: retrieve, then generate. In production, the interesting failures happen before the model writes a sentence.
+RAG failures become easier to debug once “RAG quality” stops being treated as one thing.
 
-Wrong chunking hides the answer across boundaries. A stale index serves yesterday’s policy with today’s confidence. Sparse or dense retrieval can rank fluent near-misses above the one document that actually matters. Sometimes retrieval returns nothing useful, and the model still answers anyway.
+First ask whether the information exists in the corpus at all. A retriever cannot recover a document that was never ingested, was parsed incorrectly, was removed by a metadata filter, or is simply stale.
 
-The diagnostic question is simple: was the right evidence in the context window? If not, improving the prompt or swapping the generator is theater. Fix ingestion, chunking, metadata filters, hybrid search, or freshness first. If the evidence was present and the model ignored it, then grounding, citation, or refusal behavior is the real issue.
+Then ask whether retrieval found the right evidence. Chunking may have separated a fact from the context that gives it meaning. Dense retrieval can prefer a semantically similar distractor. Sparse search can miss a paraphrase. Query rewriting can rescue an ambiguous query or damage one that was already precise. A reranker helps only if the useful evidence entered the candidate set in the first place.
 
-Treat “retrieval quality” and “answer quality” as separate metrics. Otherwise you will keep fine-tuning the wrong stage of the pipeline.
+Then inspect what actually reached the model. Good retrieval can still become bad context through duplication, ordering, oversized chunks or several passages that disagree.
+
+Only after those stages pass do I start blaming generation.
+
+If the correct evidence was available and the model ignored it, then grounding, prompting, citation behavior, context handling or the model itself becomes interesting.
+
+This ordering sounds obvious, but it changes debugging completely. Without it, teams can spend days changing prompts and models for an answer that never entered the context window.

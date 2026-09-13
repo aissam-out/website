@@ -201,12 +201,25 @@ export function collapseForListing(kind: ContentKind): ListingItem[] {
   });
 }
 
+export function pathForKind(kind: ContentKind) {
+  switch (kind) {
+    case "reads":
+      return "notes";
+    case "thoughts":
+      return "essays";
+    case "articles":
+      return "projects";
+    default:
+      return kind;
+  }
+}
+
 export function hrefForPost(post: Post) {
-  return `/${post.kind}/${post.slug}`;
+  return `/${pathForKind(post.kind)}/${post.slug}`;
 }
 
 export function hrefForSeries(series: Series) {
-  return `/${series.kind}/series/${series.slug}`;
+  return `/${pathForKind(series.kind)}/series/${series.slug}`;
 }
 
 function tagOverlap(a: Post, b: Post) {

@@ -2,15 +2,21 @@
 title: "Evaluating LLM products"
 slug: "llm-evaluation"
 date: 2026-06-18
-description: "Fluency is not success. LLM products need offline golden sets, online signals, and judges you do not trust blindly."
+description: "The useful unit of evaluation for an LLM product is usually not the completion. It is the task."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-Classical NLP metrics answer a narrow question: how close is this output to a reference? LLM products usually need a different question: did the system do the job a user actually hired it for?
+The useful unit of evaluation for an LLM product is usually not the completion. It is the task.
 
-That split forces two layers of evaluation. Offline, you want a golden set of real tasks with expected outcomes: correct tool use, grounded answers, refusal when needed, schema-valid output. Online, you want product signals: resolution rate, escalation rate, latency, cost per successful task, and human review on the hard cases.
+A response can read perfectly and still come from a failed system. The retriever may have returned the wrong document. The agent may have selected the wrong tool. The answer may not be supported by its evidence. A valid JSON object may contain the wrong values. The user may eventually get the right result after twelve seconds and several unnecessary model calls.
 
-LLM-as-judge can help score open-ended answers at scale, but it is not a substitute for ground truth. Judges inherit bias, drift with prompt changes, and often reward fluent wrongness. Use them as a triage layer, not as the final authority.
+So I prefer to separate evaluation by layer.
 
-The senior move is to evaluate the system, not only the model. A beautiful completion that retrieved the wrong document, skipped a required tool, or violated a policy is still a failure. If your dashboard only tracks BLEU-like fluency, you are measuring the wrong thing.
+Offline evaluation starts with representative tasks and explicit definitions of success: correct answer, correct evidence, correct tool, valid arguments, appropriate refusal, successful final state, or whatever the workflow actually requires. Components should also be evaluated separately when possible. An end-to-end failure tells you that something went wrong; it does not tell you where.
+
+Online evaluation answers a different question: what happens when real users interact with the system? Task completion, corrections, escalation, latency, failures, cost per successful task and repeated human overrides often tell you more than another model benchmark.
+
+LLM-as-judge is useful for open-ended outputs, especially for comparison and triage, but the judge is another model with its own biases. I want it calibrated against examples humans have actually labelled.
+
+The point is not to accumulate metrics. It is to make a failure attributable.

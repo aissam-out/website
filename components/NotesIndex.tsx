@@ -115,7 +115,7 @@ export function NotesIndex({ posts }: { posts: NoteCard[] }) {
         {visible.map((post) => (
           <Link
             key={post.slug}
-            href={`/reads/${post.slug}`}
+            href={`/notes/${post.slug}`}
             className="group flex flex-col rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50"
           >
             <div className="flex items-center justify-between gap-3">

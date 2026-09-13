@@ -1,0 +1,26 @@
+---
+title: "When the model stops being the bottleneck"
+slug: "when-the-model-stops-being-the-bottleneck"
+date: 2026-08-05
+description: "A machine learning project can change character without changing its model."
+category: "advanced"
+readingTime: "2 min"
+---
+
+A machine learning project can change character without changing its model.
+
+At the beginning, most questions are about model quality. Which checkpoint performs better? Is the threshold right? Would a larger model improve the remaining errors? With a small dataset and a few experiments, this makes sense because the model is most of the system.
+
+Then the workload grows.
+
+A few dozen inputs become thousands. The job needs to run every day. Some files are malformed, some were already processed, and one failure should not force everything to start again. The GPU waits for preprocessing. Intermediate results need to survive crashes. A retry can accidentally duplicate work. Suddenly, the model is only one stage in a much larger pipeline.
+
+I saw this clearly with audio workloads. “Run diarization, extract speech, compute embeddings, search for matches” sounds like a model pipeline. At larger volume, every verb becomes an engineering problem.
+
+Diarization needs batching and scheduling. Expensive stages should not be repeated unnecessarily. Bad audio should be rejected before consuming GPU time. Intermediate artifacts need stable identifiers. Failures need isolation. Throughput has to be measured across the entire pipeline rather than inside one model call.
+
+This changes optimization too. A five percent faster model means little if preprocessing is serialized or half the runtime comes from moving data around. A larger model can even make the system worse if it reduces concurrency enough to miss the processing window.
+
+Eventually, the useful question becomes how much correct work the whole system completes with the available hardware and time.
+
+That is usually the point where an AI project stops being mainly a model problem and becomes a systems problem.

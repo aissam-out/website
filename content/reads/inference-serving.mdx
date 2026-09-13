@@ -2,15 +2,21 @@
 title: "Serving LLMs in production"
 slug: "inference-serving"
 date: 2026-07-11
-description: "Training gets the attention. Serving decides whether the system is usable: batching, KV cache, latency, throughput, and cost per successful request."
+description: "LLM inference is partly a scheduling and memory problem disguised as a model call."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-A model that only runs in a notebook is not a product. Serving is where sequence length, concurrency, and money collide.
+LLM inference is partly a scheduling and memory problem disguised as a model call.
 
-The main levers are familiar once you stop treating the GPU as a mystery box. Batching raises throughput but can hurt tail latency. The KV cache makes long contexts cheaper to continue, until memory pressure forces smaller batches. Continuous batching and good schedulers keep the accelerator fed without turning every request into a queueing disaster.
+A request begins with prefill, where the prompt is processed, and continues with autoregressive decoding, where output tokens are generated sequentially. Real traffic mixes different prompt lengths, generation lengths and arrival times, so serving is mostly about keeping useful work flowing without destroying latency.
 
-Utilization dashboards lie in a specific way: a busy GPU can still deliver poor useful throughput if kernels are tiny, transfers dominate, or batch shapes are wrong. Measure tokens per second, latency percentiles, and cost per successful task, not only “GPU at 99%.”
+The KV cache is central to that tradeoff. It avoids recomputing attention state for previous tokens during every decode step, but cached tokens consume accelerator memory. Longer contexts and more concurrent sequences therefore compete directly for the memory needed to keep requests in flight.
 
-The senior question is not “can we run this model?” It is “can we run the traffic we actually have, within latency and budget, without melting the box?”
+This is why inference engines care about continuous batching, paged KV-cache management, prefix reuse, scheduling and optimized attention kernels. The objective is not simply to build the largest possible batch. It is to balance throughput, memory pressure and latency under the traffic pattern you actually have.
+
+GPU utilization is also easy to misread. A device can report very high utilization because kernels are continuously executing while still delivering disappointing useful throughput. Kernel efficiency, batch shapes, synchronization, memory movement and other bottlenecks still matter.
+
+So I care more about time to first token, inter-token latency, latency percentiles, tokens per second, concurrency, memory pressure and cost per completed request.
+
+A busy GPU is not the objective. Useful work per unit of hardware is.

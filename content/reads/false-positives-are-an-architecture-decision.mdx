@@ -1,0 +1,30 @@
+---
+title: "False positives are an architecture decision"
+slug: "false-positives-are-an-architecture-decision"
+date: 2026-08-12
+description: "A similarity threshold looks like a model parameter until the system gives it consequences."
+category: "advanced"
+readingTime: "2 min"
+---
+
+A similarity threshold looks like a model parameter until the system gives it consequences.
+
+Imagine two applications using the same similarity model. One recommends similar songs. The other flags two voice recordings as potentially belonging to the same person. A false positive in the first system produces a bad recommendation. In the second, it can send an innocent case into an investigation.
+
+The model can be identical while the acceptable operating point is completely different.
+
+This became very concrete for me while working with speaker embeddings. The mechanics are straightforward: convert speech into a vector, compare vectors, rank the closest candidates. The difficult part is deciding what a high similarity score should actually allow the system to do.
+
+There is rarely a perfect threshold separating matches from non-matches. Recordings vary in quality, duration, channel, background noise and segmentation accuracy. Same-speaker and different-speaker score distributions overlap.
+
+If false positives are expensive, the embedding model should probably produce candidates rather than final decisions.
+
+The architecture can then add other evidence: reject low-quality audio, require enough usable speech, aggregate several segments, look for repeated supporting matches, or send uncertain cases for human review.
+
+The threshold becomes part of a larger decision process.
+
+I also prefer keeping the original score and supporting evidence rather than immediately turning everything into a boolean such as same_person = true. Once uncertainty disappears from the data model, downstream systems tend to forget that the label came from a probabilistic system in the first place.
+
+This applies well beyond speaker recognition. Fraud detection, moderation, medical screening and anomaly detection all have different costs for different mistakes.
+
+Choosing a threshold therefore means deciding what the system is allowed to do when the model is uncertain.

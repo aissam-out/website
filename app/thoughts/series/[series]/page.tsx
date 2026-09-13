@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { SeriesHub } from "@/components/PostLayout";
-import { getSeries, getSeriesBySlug } from "@/lib/content";
+import { PermanentRedirect } from "@/components/PermanentRedirect";
+import { getSeries } from "@/lib/content";
+import { site } from "@/lib/site";
 
 type Props = { params: Promise<{ series: string }> };
 
@@ -10,19 +10,16 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { series: seriesSlug } = await params;
-  const series = getSeriesBySlug("thoughts", seriesSlug);
-  if (!series) return {};
+  const { series } = await params;
+  const href = `/essays/series/${series}/`;
   return {
-    title: series.title,
-    description: series.description,
+    title: "Moved",
+    robots: { index: false, follow: true },
+    alternates: { canonical: `${site.domain}${href}` },
   };
 }
 
-export default async function ThoughtSeriesPage({ params }: Props) {
-  const { series: seriesSlug } = await params;
-  const series = getSeriesBySlug("thoughts", seriesSlug);
-  if (!series) notFound();
-
-  return <SeriesHub series={series} kindLabel="essays" />;
+export default async function LegacyThoughtSeriesRedirect({ params }: Props) {
+  const { series } = await params;
+  return <PermanentRedirect href={`/essays/series/${series}/`} />;
 }

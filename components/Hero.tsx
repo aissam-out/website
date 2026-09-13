@@ -151,7 +151,7 @@ export function Hero() {
             transitionDelay: `${120 + (lineOne.length + lineTwo.length) * 70 + 260}ms`,
           }}
         >
-          <ButtonLink href="/reads">Notes</ButtonLink>
+          <ButtonLink href="/notes">Notes</ButtonLink>
           <ButtonLink href="/projects" variant="ghost">
             Projects
           </ButtonLink>

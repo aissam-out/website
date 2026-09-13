@@ -2,15 +2,25 @@
 title: "Direct Preference Optimization (DPO)"
 slug: "dpo"
 date: 2026-07-22
-description: "DPO turns preference pairs into a fine-tune without a full RL loop. It is often enough. It is not always a replacement for RLHF."
+description: "Suppose you show someone two responses to the same prompt and ask which one they prefer."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-RLHF usually means a reward model plus reinforcement learning against a frozen reference policy. That stack works, and it is heavy: unstable training, extra models, careful reward hacking watch.
+Suppose you show someone two responses to the same prompt and ask which one they prefer.
 
-DPO skips the explicit reward model. Given pairs of preferred and rejected responses, it optimizes the policy to raise the likelihood of the winner relative to the loser, while staying close to a reference model. In practice, that often looks like a supervised fine-tune with a preference-aware loss.
+Traditional RLHF can turn many such comparisons into a reward model and then optimize a policy against that learned reward while constraining how far the policy moves from a reference model. It works, but it introduces another model and an RL optimization loop.
 
-Use DPO when you have decent preference data and want alignment gains without running a full RL job. Stay skeptical when preferences are noisy, multi-objective, or heavily dependent on a learned reward that captures subtle product taste. RLHF (or richer preference methods) can still win when the reward signal is doing real work.
+DPO reaches a related objective more directly.
 
-The important decision is not brand-name preference algorithm. It is whether your preference data actually encodes the behavior you want in production.
+Given a preferred response and a rejected response, it trains the policy so that the preferred response becomes relatively more likely than the rejected one, compared with a reference policy. There is no separately trained reward model and no on-policy rollout loop during DPO training.
+
+That simplicity is the appeal.
+
+It does not make the underlying preference problem disappear.
+
+If annotators systematically prefer longer answers, the model can learn verbosity. If the comparisons poorly represent difficult cases, DPO does not manufacture the missing signal. If “good” actually combines correctness, safety, tone and product-specific behavior, reducing all of that to pairwise preferences can hide disagreement about what the model is being optimized for.
+
+So the preference dataset is at least as important as the optimization method.
+
+DPO makes preference optimization operationally simpler. It does not tell you whether the preferences themselves reward the behavior you actually want.

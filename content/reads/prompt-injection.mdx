@@ -2,15 +2,23 @@
 title: "Prompt injection and guardrails"
 slug: "prompt-injection"
 date: 2026-07-19
-description: "If untrusted text can change tool use or policy, you do not have a prompt problem. You have an application security problem."
+description: "Prompt injection becomes much more consequential once a model can do something."
 category: "advanced"
 readingTime: "2 min"
 ---
 
-Prompt injection is what happens when instructions and data share a channel. A webpage, email, or retrieved document can tell the model to ignore your system prompt, exfiltrate secrets, or abuse a tool.
+Prompt injection becomes much more consequential once a model can do something.
 
-Direct injection is the obvious jailbreak. Indirect injection is worse in products: the attack arrives inside content the system was supposed to trust as data. Once agents can browse, retrieve, or call APIs, that content becomes executable influence.
+Traditional software has a useful separation between instructions and data. LLM applications weaken that boundary because system instructions, user messages, retrieved documents, webpages, emails and tool results can eventually become tokens inside the same context.
 
-Guardrails are defense in depth, not a magic system message. Separate privileges for tools. Sanitize or isolate untrusted context. Require confirmation for irreversible actions. Log and rate-limit sensitive operations. Treat the model as a confused deputy, not as a security boundary.
+Direct injection comes from the user. Indirect injection arrives inside content the system retrieved on the user's behalf.
 
-If your only mitigation is “we told the model to be careful,” you have not secured the system. You have annotated it.
+That second case is particularly uncomfortable for agents. A webpage is supposed to be data, yet it can contain text instructing the model to ignore the original task, reveal information or invoke another tool. To the model, both legitimate instructions and malicious content are ultimately language.
+
+There is no sufficiently clever system prompt that turns this into a solved security problem.
+
+The useful controls therefore exist around the model: least-privilege credentials, narrow tool permissions, deterministic authorization, parameter validation, isolation of untrusted content, rate limits, audit logs and confirmation before consequential actions.
+
+Model-based classifiers and guardrails can add another layer, but they should not become the security boundary. They are probabilistic components too.
+
+The model can interpret information and propose actions. The application should retain authority over what actually happens.
