@@ -44,7 +44,7 @@ export function EngineeringTimeline({
         ))}
       </ol>
 
-      {/* Desktop: horizontal — six steps fit the article width */}
+      {/* Desktop: horizontal; six steps fit the article width */}
       <div className={`hidden md:block ${title ? "mt-5" : ""}`}>
         <ol className="flex gap-0">
           {engineeringTimeline.map((step, index) => (

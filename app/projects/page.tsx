@@ -5,7 +5,7 @@ import { getPosts } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Projects",
   description:
-    "Open-source Darija, production ML pipelines, chatbots, and voice assistants.",
+    "Darija, voice pipelines, chatbots, Alexa skills, and production AI systems.",
 };
 
 export default function ProjectsPage() {
@@ -18,8 +18,8 @@ export default function ProjectsPage() {
         Things that <em className="gold-em not-italic">shipped</em>
       </h1>
       <p className="mt-6 max-w-2xl text-muted">
-        Datasets, libraries, APIs, chatbots, and voice skills — the public
-        trail of work I can point to.
+        From early chatbots and Alexa skills to Darija datasets, voice fraud
+        pipelines, and long-form writeups of systems that actually ran.
       </p>
       <div className="mt-12">
         <ListingGrid

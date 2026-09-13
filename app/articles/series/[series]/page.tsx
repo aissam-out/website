@@ -1,28 +1,22 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { SeriesHub } from "@/components/PostLayout";
-import { getSeries, getSeriesBySlug } from "@/lib/content";
+import { PermanentRedirect } from "@/components/PermanentRedirect";
+import { site } from "@/lib/site";
 
 type Props = { params: Promise<{ series: string }> };
 
 export function generateStaticParams() {
-  return getSeries("articles").map((series) => ({ series: series.slug }));
+  // Keep the route buildable; any old series hub goes to projects.
+  return [{ series: "darija" }, { series: "alexa-skills-with-python" }];
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { series: seriesSlug } = await params;
-  const series = getSeriesBySlug("articles", seriesSlug);
-  if (!series) return {};
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: series.title,
-    description: series.description,
+    title: "Moved to Projects",
+    robots: { index: false, follow: true },
+    alternates: { canonical: `${site.domain}/projects/` },
   };
 }
 
-export default async function ArticleSeriesPage({ params }: Props) {
-  const { series: seriesSlug } = await params;
-  const series = getSeriesBySlug("articles", seriesSlug);
-  if (!series) notFound();
-
-  return <SeriesHub series={series} kindLabel="articles" />;
+export default async function LegacyArticleSeriesRedirect(_props: Props) {
+  return <PermanentRedirect href="/projects/" />;
 }

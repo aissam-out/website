@@ -13,7 +13,11 @@ import {
   type ListingItem,
 } from "@/lib/content";
 import { formatDateLong } from "@/lib/dates";
-import { seriesCopy, site } from "@/lib/site";
+import { kindLabels, seriesCopy, site } from "@/lib/site";
+
+function shortChapterTitle(title: string) {
+  return title.replace(/^.*?:\s*/, "");
+}
 
 export function PostLayout({
   post,
@@ -44,6 +48,9 @@ export function PostLayout({
   const related = getRelatedPosts(post, 2).filter(
     (item) => item.slug !== prev?.slug && item.slug !== next?.slug,
   );
+
+  const hasOutbound = Boolean(post.github || post.live);
+  const hasRelated = Boolean(post.related?.length);
 
   return (
     <article className="mx-auto max-w-3xl px-5 pb-24 pt-16 md:px-8">
@@ -105,6 +112,54 @@ export function PostLayout({
         </a>
       </div>
 
+      {hasOutbound || hasRelated ? (
+        <div className="mt-8 flex flex-col gap-4 border-y border-line py-5">
+          {hasOutbound ? (
+            <div className="flex flex-wrap gap-3">
+              {post.github ? (
+                <a
+                  href={post.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-canvas hover:opacity-90"
+                >
+                  View on GitHub
+                </a>
+              ) : null}
+              {post.live ? (
+                <a
+                  href={post.live}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-cream transition hover:border-gold hover:text-gold"
+                >
+                  Live demo
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+          {hasRelated ? (
+            <div>
+              <p className="text-[0.65rem] uppercase tracking-[0.16em] text-gold">
+                Related
+              </p>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {post.related!.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-cream/85 transition hover:text-gold"
+                    >
+                      {link.label} →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {series ? (
         <nav
           aria-label="Series chapters"
@@ -112,17 +167,23 @@ export function PostLayout({
         >
           {series.chapters.map((chapter) => {
             const active = chapter.slug === post.slug;
+            const label = shortChapterTitle(chapter.title);
             return (
               <Link
                 key={chapter.slug}
                 href={hrefForPost(chapter)}
+                title={chapter.title}
+                aria-label={`Chapter ${chapter.seriesOrder}: ${chapter.title}`}
                 className={`rounded-full px-3 py-1 text-xs tracking-wide transition ${
                   active
                     ? "bg-gold text-canvas"
                     : "border border-line text-muted hover:border-gold hover:text-gold"
                 }`}
               >
-                {chapter.seriesOrder}
+                <span className="sm:hidden">{chapter.seriesOrder}</span>
+                <span className="hidden sm:inline">
+                  Ch. {chapter.seriesOrder} · {label}
+                </span>
               </Link>
             );
           })}
@@ -187,6 +248,7 @@ export function SeriesCard({ series }: { series: Series }) {
       ? `${firstDate} – ${lastDate}`
       : firstDate;
   const hubHref = hrefForSeries(series);
+  const first = series.chapters[0];
 
   return (
     <div className="flex flex-col rounded-3xl border border-line bg-canvas-2 p-6 sm:col-span-2 lg:col-span-3">
@@ -213,7 +275,7 @@ export function SeriesCard({ series }: { series: Series }) {
               className="block rounded-xl border border-line/80 bg-canvas px-3 py-2 text-sm text-cream/80 transition hover:border-gold hover:text-gold"
             >
               <span className="text-gold">{chapter.seriesOrder}.</span>{" "}
-              {chapter.title.replace(/^.*?:\s*/, "")}
+              {shortChapterTitle(chapter.title)}
               {chapter.date ? (
                 <span className="mt-1 block">
                   <PostDate date={chapter.date} variant="inline" />
@@ -223,9 +285,19 @@ export function SeriesCard({ series }: { series: Series }) {
           </li>
         ))}
       </ol>
-      <Link href={hubHref} className="mt-6 text-sm text-gold hover:underline">
-        Open series →
-      </Link>
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        {first ? (
+          <Link
+            href={hrefForPost(first)}
+            className="text-sm font-medium text-gold hover:underline"
+          >
+            {copy?.startLabel ?? "Start with chapter 1"} →
+          </Link>
+        ) : null}
+        <Link href={hubHref} className="text-sm text-muted hover:text-gold">
+          Series overview
+        </Link>
+      </div>
     </div>
   );
 }
@@ -254,7 +326,9 @@ export function ListingGrid({
           >
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs uppercase tracking-[0.16em] text-gold">
-                {chip ? chip(post) : post.category ?? post.kind}
+                {chip
+                  ? chip(post)
+                  : kindLabels[post.kind].singular}
               </span>
               {post.date ? (
                 <PostDate date={post.date} variant="compact" />

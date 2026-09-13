@@ -260,7 +260,7 @@ export function TrainingCurves({
                 <span className="text-cream">
                   {train.length
                     ? train[train.length - 1].value.toFixed(3)
-                    : "—"}
+                    : "-"}
                 </span>
               </p>
             </div>

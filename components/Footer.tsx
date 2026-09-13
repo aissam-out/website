@@ -53,7 +53,7 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <p className="mx-auto max-w-6xl px-5 py-5 text-xs text-muted md:px-8">
-          © {new Date().getFullYear()} {site.author}. Canonical home for notes, essays, and technical writing.
+          © {new Date().getFullYear()} {site.author}. Canonical home for notes, essays, and projects.
         </p>
       </div>
     </footer>

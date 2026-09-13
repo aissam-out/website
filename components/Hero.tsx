@@ -117,7 +117,7 @@ export function Hero() {
           }`}
           style={{ transitionDelay: "40ms" }}
         >
-          AI · Language · Uncertainty
+          {site.name}
         </p>
 
         <h1 className="mt-6 max-w-5xl font-display text-5xl italic leading-[0.98] text-cream md:text-7xl lg:text-[5.25rem]">
@@ -151,9 +151,9 @@ export function Hero() {
             transitionDelay: `${120 + (lineOne.length + lineTwo.length) * 70 + 260}ms`,
           }}
         >
-          <ButtonLink href="/reads">2-minute reads</ButtonLink>
-          <ButtonLink href="/about" variant="ghost">
-            About me
+          <ButtonLink href="/reads">Notes</ButtonLink>
+          <ButtonLink href="/projects" variant="ghost">
+            Projects
           </ButtonLink>
         </div>
       </div>

@@ -7,7 +7,7 @@ category: "advanced"
 readingTime: "2 min"
 ---
 
-Neural networks are growing larger and more complex. Thus, optimizing for speed and memory usage has become critical. Enter Mixed Precision and Quantization—two superheroes in the DL space that aim to make models more efficient without sacrificing too much performance.
+Neural networks are growing larger and more complex. Thus, optimizing for speed and memory usage has become critical. Enter Mixed Precision and Quantization, two superheroes in the DL space that aim to make models more efficient without sacrificing too much performance.
 
 But what's the difference between these two techniques, and when should you use one over the other? Let’s break it down.
 
@@ -21,7 +21,7 @@ When to use it: When training large models like transformers and you want to sav
 
 Quantization: The Minimalist Approach
 
-Quantization goes even further, reducing model weights and activations to much lower precision—typically 8-bit integers (INT8). This significantly reduces the memory footprint and allows for ultra-fast computations, especially on devices like mobile phones or IoT devices.
+Quantization goes even further, reducing model weights and activations to much lower precision, typically 8-bit integers (INT8). This significantly reduces the memory footprint and allows for ultra-fast computations, especially on devices like mobile phones or IoT devices.
 
 However, the trade-off here can be accuracy. If your model relies heavily on subtle, high-precision calculations, you might notice a slight dip in performance. But with fine-tuning (or using Quantization-Aware Training), you can mitigate these effects.
 

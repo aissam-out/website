@@ -4,7 +4,10 @@ export function Marquee() {
   const items = [...marqueeItems, ...marqueeItems];
 
   return (
-    <div className="overflow-hidden border-y border-line bg-canvas-2 py-4">
+    <div
+      className="overflow-hidden border-y border-line bg-canvas-2 py-4"
+      aria-hidden
+    >
       <div className="marquee-track flex w-max gap-10 pr-10">
         {items.map((item, index) => (
           <span

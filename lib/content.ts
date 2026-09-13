@@ -4,6 +4,11 @@ import matter from "gray-matter";
 
 export type ContentKind = "reads" | "thoughts" | "articles" | "projects";
 
+export type RelatedLink = {
+  href: string;
+  label: string;
+};
+
 export type Post = {
   title: string;
   slug: string;
@@ -20,6 +25,8 @@ export type Post = {
   featured?: boolean;
   series?: string;
   seriesOrder?: number;
+  /** Cross-room bridges shown in the post header. */
+  related?: RelatedLink[];
   kind: ContentKind;
 };
 
@@ -43,6 +50,20 @@ export function slugifySeries(title: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function parseRelated(value: unknown): RelatedLink[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const links: RelatedLink[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    const href = typeof record.href === "string" ? record.href : "";
+    const label = typeof record.label === "string" ? record.label : "";
+    if (!href || !label) continue;
+    links.push({ href, label });
+  }
+  return links.length ? links : undefined;
 }
 
 function parseDate(value: unknown) {
@@ -91,6 +112,7 @@ function loadDir(kind: ContentKind): Post[] {
         series: data.series ? String(data.series) : undefined,
         seriesOrder:
           typeof data.seriesOrder === "number" ? data.seriesOrder : undefined,
+        related: parseRelated(data.related),
         kind,
       } satisfies Post;
     })

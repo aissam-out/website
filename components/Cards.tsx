@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Post } from "@/lib/content";
+import { kindLabels } from "@/lib/site";
 
 export function SectionHeader({
   eyebrow,
@@ -57,7 +58,7 @@ export function RoomCard({
   return (
     <Link
       href={href}
-      className="group min-w-[260px] snap-start rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50"
+      className="group flex h-full flex-col rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50"
     >
       <p className="text-xs tracking-[0.2em] text-gold">{eyebrow}</p>
       <h3 className="mt-6 font-display text-3xl italic text-cream group-hover:text-gold">
@@ -95,10 +96,10 @@ export function PostCard({
   return (
     <Link
       href={href}
-      className="group flex min-w-[280px] max-w-sm snap-start flex-col rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50"
+      className="group flex w-[min(100%,20rem)] max-w-sm shrink-0 snap-start flex-col rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50 sm:min-w-[280px]"
     >
       <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.16em] text-gold">
-        <span>{chip ?? post.category ?? post.kind}</span>
+        <span>{chip ?? kindLabels[post.kind].singular}</span>
         {post.readingTime ? <span>{post.readingTime}</span> : null}
       </div>
       <h3 className="mt-5 font-display text-2xl italic leading-snug text-cream group-hover:text-gold">
@@ -118,7 +119,7 @@ export function PostCard({
 
 export function CardRail({ children }: { children: ReactNode }) {
   return (
-    <div className="rail -mx-5 flex gap-5 overflow-x-auto px-5 pb-4 snap-x snap-mandatory md:mx-0 md:px-0">
+    <div className="rail -mx-5 flex gap-5 overflow-x-auto px-5 pb-4 pe-10 snap-x snap-mandatory sm:pe-5 md:mx-0 md:px-0 md:pe-0">
       {children}
     </div>
   );

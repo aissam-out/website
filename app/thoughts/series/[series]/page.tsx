@@ -24,5 +24,5 @@ export default async function ThoughtSeriesPage({ params }: Props) {
   const series = getSeriesBySlug("thoughts", seriesSlug);
   if (!series) notFound();
 
-  return <SeriesHub series={series} kindLabel="thoughts" />;
+  return <SeriesHub series={series} kindLabel="essays" />;
 }

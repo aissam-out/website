@@ -1,16 +1,31 @@
+import Link from "next/link";
 import { ButtonLink } from "@/components/ButtonLink";
 import { CardRail, PostCard, RoomCard, SectionHeader } from "@/components/Cards";
 import { Hero } from "@/components/Hero";
 import { Marquee } from "@/components/Marquee";
-import { SeriesCard } from "@/components/PostLayout";
 import { StatRow } from "@/components/StatRow";
-import { collapseForListing, getFeaturedProjects, getPosts } from "@/lib/content";
-import { beliefs, rooms, site } from "@/lib/site";
+import {
+  getFeaturedProjects,
+  getPosts,
+  hrefForPost,
+  type Post,
+} from "@/lib/content";
+import { beliefs, kindLabels, rooms, site } from "@/lib/site";
+
+function recentWriting(limit = 6): Post[] {
+  const pool = [
+    ...getPosts("reads"),
+    ...getPosts("thoughts"),
+    ...getPosts("projects"),
+  ];
+  return pool
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+    .slice(0, limit);
+}
 
 export default function HomePage() {
   const projects = getFeaturedProjects();
-  const reads = getPosts("reads").slice(0, 8);
-  const thoughtItems = collapseForListing("thoughts").slice(0, 4);
+  const writing = recentWriting(6);
 
   return (
     <>
@@ -25,11 +40,11 @@ export default function HomePage() {
           emphasis="look"
           description="A personal site, not a brochure. Pick a room."
         />
-        <CardRail>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {rooms.map((room) => (
             <RoomCard key={room.href} {...room} />
           ))}
-        </CardRail>
+        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-10 md:px-8">
@@ -39,7 +54,7 @@ export default function HomePage() {
           emphasis="shipped"
           href="/projects"
           cta="All projects"
-          description="Datasets, libraries, pipelines, chatbots, and voice skills."
+          description="Darija, voice pipelines, chatbots, and production AI systems."
         />
         <CardRail>
           {projects.map((post) => (
@@ -47,7 +62,7 @@ export default function HomePage() {
               key={post.slug}
               post={post}
               href={`/projects/${post.slug}`}
-              chip="Project"
+              chip={kindLabels.projects.singular}
             />
           ))}
         </CardRail>
@@ -55,20 +70,20 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-5 py-10 md:px-8">
         <SectionHeader
-          eyebrow="NLP Explained"
-          title="Notes you can"
-          emphasis="read in two minutes"
+          eyebrow="Writing"
+          title="Recent"
+          emphasis="pages"
           href="/reads"
-          cta="All reads"
-          description="From foundations to advanced techniques — boiled down, simplified, and packed tight."
+          cta="Browse notes"
+          description="Notes, essays, and projects: the latest across the rooms."
         />
         <CardRail>
-          {reads.map((post) => (
+          {writing.map((post) => (
             <PostCard
-              key={post.slug}
+              key={`${post.kind}-${post.slug}`}
               post={post}
-              href={`/reads/${post.slug}`}
-              chip="2 min"
+              href={hrefForPost(post)}
+              chip={kindLabels[post.kind].singular}
             />
           ))}
         </CardRail>
@@ -82,50 +97,27 @@ export default function HomePage() {
         />
         <div className="grid gap-6 md:grid-cols-2">
           {beliefs.map((belief) => (
-            <div
+            <Link
               key={belief.title}
-              className="rounded-3xl border border-line bg-canvas-2 p-7"
+              href={belief.href}
+              className="group rounded-3xl border border-line bg-canvas-2 p-7 transition hover:border-gold/45"
             >
-              <h3 className="font-display text-2xl italic text-cream">
+              <h3 className="font-display text-2xl italic text-cream group-hover:text-gold">
                 {belief.title}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted">{belief.body}</p>
-            </div>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                {belief.body}
+              </p>
+              <p className="mt-5 text-sm text-gold">
+                {belief.linkLabel} →
+              </p>
+            </Link>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-8 md:px-8">
         <StatRow />
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 py-16 md:px-8">
-        <SectionHeader
-          eyebrow="Thoughts"
-          title="A little less"
-          emphasis="certainty"
-          href="/thoughts"
-          cta="All essays"
-        />
-        <div className="grid gap-5 md:grid-cols-2">
-          {thoughtItems.map((item) => {
-            if (item.type === "series") {
-              return (
-                <div key={item.series.slug} className="md:col-span-2">
-                  <SeriesCard series={item.series} />
-                </div>
-              );
-            }
-            return (
-              <PostCard
-                key={item.post.slug}
-                post={item.post}
-                href={`/thoughts/${item.post.slug}`}
-                chip={item.post.series ?? "Essay"}
-              />
-            );
-          })}
-        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-8 pt-8 md:px-8">

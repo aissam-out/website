@@ -1,0 +1,16 @@
+---
+title: "RAG failure modes"
+slug: "rag-failure-modes"
+date: 2026-06-27
+description: "Most RAG bugs are not generator bugs. Wrong chunks, stale indexes, and retrieval that never had the answer will beat a strong model every time."
+category: "advanced"
+readingTime: "2 min"
+---
+
+RAG looks clean on a whiteboard: retrieve, then generate. In production, the interesting failures happen before the model writes a sentence.
+
+Wrong chunking hides the answer across boundaries. A stale index serves yesterday’s policy with today’s confidence. Sparse or dense retrieval can rank fluent near-misses above the one document that actually matters. Sometimes retrieval returns nothing useful, and the model still answers anyway.
+
+The diagnostic question is simple: was the right evidence in the context window? If not, improving the prompt or swapping the generator is theater. Fix ingestion, chunking, metadata filters, hybrid search, or freshness first. If the evidence was present and the model ignored it, then grounding, citation, or refusal behavior is the real issue.
+
+Treat “retrieval quality” and “answer quality” as separate metrics. Otherwise you will keep fine-tuning the wrong stage of the pipeline.

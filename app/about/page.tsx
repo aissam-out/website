@@ -7,7 +7,7 @@ import { papers, site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About",
-  description: `About ${site.author} — senior AI engineer working on conversational systems, Darija NLP, and writing at ${site.name}.`,
+  description: `About ${site.author}, senior AI engineer working on conversational systems, Darija NLP, and writing at ${site.name}.`,
 };
 
 export default function AboutPage() {
@@ -20,8 +20,9 @@ export default function AboutPage() {
       </h1>
       <p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted">
         I&apos;m {site.author}. I build conversational AI, publish open resources
-        for Moroccan Darija, and write — sometimes two-minute notes on NLP,
-        sometimes longer essays on what we think we know.
+        for Moroccan Darija, and write: sometimes two-minute notes on NLP,
+        sometimes longer essays on what we think we know, sometimes long-form
+        project writeups with the working parts left in.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
         <ButtonLink href={site.socials.github}>GitHub</ButtonLink>
@@ -46,7 +47,7 @@ export default function AboutPage() {
           <p className="text-base leading-relaxed text-cream/80">
             I started Darija Open Dataset, still one of the largest open
             Darija ⇆ English resources for NLP. I&apos;m a certified TensorFlow
-            Developer. I use Python. I keep a public trail of tutorials,
+            Developer. I use Python. I keep a public trail of projects,
             papers, and notes.
           </p>
         </div>

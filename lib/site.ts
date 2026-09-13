@@ -16,12 +16,39 @@ export const site = {
   },
 } as const;
 
+/** User-facing labels for content kinds. URLs stay /reads, /thoughts, /projects. */
+export const kindLabels = {
+  reads: {
+    singular: "Note",
+    plural: "Notes",
+    closer: "End of note",
+    promise: "NLP in two minutes.",
+  },
+  thoughts: {
+    singular: "Essay",
+    plural: "Essays",
+    closer: "End of essay",
+    promise: "Longer writing on knowing and uncertainty.",
+  },
+  articles: {
+    singular: "Project",
+    plural: "Projects",
+    closer: "End of project",
+    promise: "Things that shipped.",
+  },
+  projects: {
+    singular: "Project",
+    plural: "Projects",
+    closer: "End of project",
+    promise: "Things that shipped.",
+  },
+} as const;
+
 export const nav = [
   { href: "/about", label: "About" },
   { href: "/projects", label: "Projects" },
-  { href: "/reads", label: "Reads" },
-  { href: "/thoughts", label: "Thoughts" },
-  { href: "/articles", label: "Articles" },
+  { href: "/reads", label: "Notes" },
+  { href: "/thoughts", label: "Essays" },
 ] as const;
 
 export const marqueeItems = [
@@ -41,28 +68,28 @@ export const rooms = [
     eyebrow: "01",
     title: "About",
     description:
-      "AI engineer working on conversational systems — and the questions they leave open.",
+      "AI engineer working on conversational systems, and the questions they leave open.",
   },
   {
     href: "/projects",
     eyebrow: "02",
     title: "Projects",
     description:
-      "Darija datasets and libraries, production ML pipelines, chatbots, and voice skills.",
+      "Darija, voice, chatbots, and production AI systems, from early shipping to current work.",
   },
   {
     href: "/reads",
     eyebrow: "03",
-    title: "2-minute reads",
+    title: "Notes",
     description:
-      "NLP boiled down. Foundations to advanced techniques, packed into a short note.",
+      "NLP in two minutes. Foundations to production AI, packed into a short note.",
   },
   {
     href: "/thoughts",
     eyebrow: "04",
-    title: "Thoughts",
+    title: "Essays",
     description:
-      "Essays on certainty, perception, and how much of what we call knowing actually stands.",
+      "Longer writing on certainty, perception, and how much of what we call knowing actually stands.",
   },
 ] as const;
 
@@ -70,60 +97,151 @@ export const beliefs = [
   {
     title: "Measure the uncertainty",
     body: "A lot of what people call knowledge is borrowed confidence. The useful move is to notice where the chain of justification actually stops.",
+    href: "/thoughts",
+    linkLabel: "Read the essays",
   },
   {
     title: "Ship conversational systems",
-    body: "Chat, voice, agents. The interesting work is not the demo — it is the system that holds up when a real person starts talking.",
+    body: "Chat, voice, agents. The interesting work is not the demo; it is the system that holds up when a real person starts talking.",
+    href: "/projects",
+    linkLabel: "See the projects",
   },
   {
     title: "Open-source Darija",
     body: "Moroccan dialect is spoken by millions and still under-served in NLP. Datasets and tools should exist in the open.",
+    href: "/projects/darija-open-dataset",
+    linkLabel: "Darija Open Dataset",
   },
   {
     title: "Write in public",
-    body: "Short notes, long essays, tutorials. Writing is how the work gets inspected — by you first, then by anyone else.",
+    body: "Short notes, long essays, shipped projects. Writing is how the work gets inspected: by you first, then by anyone else.",
+    href: "/reads",
+    linkLabel: "Browse the notes",
   },
 ] as const;
 
 export const stats = [
   { value: "8+", label: "Years in AI" },
   { value: "500k", label: "DODa entries" },
-  { value: "61", label: "2-minute notes" },
-  { value: "11", label: "Papers" },
+  { value: "50", label: "Two-minute notes" },
+  { value: "11", label: "Papers on Scholar" },
 ] as const;
+
+/** Curated entry points on the Notes index; not a full tag CMS. */
+export const noteStarters = [
+  {
+    id: "start-here",
+    label: "Start here",
+    description: "A short path into NLP if you are new to the notes.",
+    slugs: [
+      "getting-started-with-nlp",
+      "nlp-vs-machine-learning",
+      "the-science-behind-nlp",
+      "limitations-and-challenges-of-nlp",
+      "dl-basics",
+    ],
+  },
+  {
+    id: "transformers",
+    label: "Transformers",
+    description: "Attention, BERT, and the models behind modern NLP.",
+    slugs: [
+      "attention-mechanisms-in-nlp",
+      "bert",
+      "bert-vs-roberta",
+      "sequence-to-sequence-learning",
+      "causal-vs-masked-language-modeling",
+    ],
+  },
+  {
+    id: "training",
+    label: "Training tricks",
+    description: "Fine-tuning, adapters, and making models fit on real hardware.",
+    slugs: [
+      "fine-tuning",
+      "lora",
+      "peft",
+      "quantization",
+      "gradient-accumulation",
+      "mixed-precision-vs-quantization",
+    ],
+  },
+  {
+    id: "production-ai",
+    label: "Production AI",
+    description: "Agents, evals, serving, safety, and the failure modes that show up after the demo.",
+    slugs: [
+      "tool-calling-agents",
+      "llm-evaluation",
+      "rag-failure-modes",
+      "structured-outputs",
+      "inference-serving",
+      "prompt-injection",
+      "dpo",
+      "speaker-embeddings",
+      "rag",
+      "function-calling",
+      "rlhf",
+    ],
+  },
+] as const;
+
+export const noteCategories = [
+  { id: "all", label: "All" },
+  { id: "foundations", label: "Foundations" },
+  { id: "general", label: "General" },
+  { id: "advanced", label: "Advanced" },
+  { id: "applications", label: "Applications" },
+] as const;
+
+/** Human labels for frontmatter categories shown on related cards. */
+export const categoryLabels: Record<string, string> = {
+  foundations: "Foundations",
+  general: "General",
+  advanced: "Advanced",
+  applications: "Applications",
+  marketing: "Marketing",
+  "customer service": "Customer service",
+  healthcare: "Healthcare",
+  "business intelligence": "Business intelligence",
+  reads: "Note",
+  thoughts: "Essay",
+  articles: "Project",
+  projects: "Project",
+};
 
 export const timeline = [
   {
-    period: "2025 — now",
+    period: "2025–now",
     title: "AI Specialist, inwi",
     place: "Casablanca",
-    body: "Conversational AI inside a telecommunications company — production systems, not slides.",
+    body: "Conversational AI inside a telecommunications company: production systems, not slides.",
   },
   {
-    period: "2022 — 2025",
+    period: "2022–2025",
     title: "Conversational AI Specialist, Affiniti AI",
     place: "London",
     body: "AI for mental health. Helping therapists deliver better outcomes to more patients.",
   },
   {
-    period: "2019 — 2022",
+    period: "2019–2022",
     title: "Head of R&D, MonarkIT",
     place: "Marrakech",
     body: "Chatbots and voice assistants. Built conversational products and the research behind them.",
   },
   {
-    period: "2017 — 2022",
+    period: "2017–2022",
     title: "PhD, IoT security & machine learning",
     place: "ENSEM, Casablanca",
     body: "Access control, blockchain, and ML for the Internet of Things.",
   },
   {
-    period: "2014 — 2016",
+    period: "2014–2016",
     title: "MSc, Cryptography and Information Security",
     place: "Mohammed V University, Rabat",
     body: "The cryptographic and security foundations that still shape how I think about systems.",
   },
-] as const;
+];
 
 export const papers: ReadonlyArray<{
   title: string;
@@ -148,7 +266,7 @@ export const papers: ReadonlyArray<{
     citations: 101,
   },
   {
-    title: "Moroccan Dialect — Darija — Open Dataset",
+    title: "Moroccan Dialect (Darija) Open Dataset",
     year: "2021",
     href: "https://arxiv.org/abs/2103.09687",
     venue: "arXiv",
@@ -176,7 +294,7 @@ export const stackGroups: ReadonlyArray<{
     ],
   },
   {
-    label: "AI tools",
+    label: "Daily tools",
     items: [
       { name: "ChatGPT", icon: "openai" },
       { name: "Claude", icon: "anthropic" },
@@ -213,10 +331,8 @@ export const seriesCopy: Record<
       "Five chapters on certainty, perception, and how much of what we call knowing actually stands when you look closely.",
     startLabel: "Start with Ring the bells",
   },
-  "alexa-skills-with-python": {
-    blurb:
-      "A hands-on path from first skill to APL, multilingual support, and monetization — written for builders who want the working parts left in.",
-    startLabel: "Start with the introduction",
-  },
 };
 
+export function labelForCategory(value: string) {
+  return categoryLabels[value] ?? categoryLabels[value.toLowerCase()] ?? value;
+}

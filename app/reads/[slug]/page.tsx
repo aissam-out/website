@@ -44,9 +44,9 @@ export default async function ReadPage({ params }: Props) {
       />
       <PostLayout
         post={post}
-        eyebrow="2-minute read"
+        eyebrow="Note"
         backHref="/reads"
-        backLabel="All reads"
+        backLabel="All notes"
       />
     </>
   );

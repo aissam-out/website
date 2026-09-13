@@ -3,8 +3,13 @@ title: "Teaching TranslateGemma Moroccan Darija: What Worked, What Broke, and Wh
 slug: "teaching-translategemma-darija"
 date: 2026-09-07
 description: "Fine-tuning TranslateGemma 4B for Arabic-script Darija and Arabizi, moving the run between GPU clouds late in training, and figuring out whether 32.82 BLEU was actually good."
-series: "Darija"
 tags: [NLP, Darija, TranslateGemma, Fine-tuning]
+featured: true
+related:
+  - href: /projects/darija-open-dataset
+    label: See the DODa project
+  - href: /projects/how-we-expanded-doda-to-500k
+    label: How we expanded DODa to 500K
 ---
 
 ![TranslateGemma 4B + LoRA translating Darija in Arabic script and Arabizi into English, set against a Moroccan evening workspace](/media/teaching-translateGemma-darija/main.png)
@@ -33,7 +38,7 @@ That slightly awkward setup turned out to work much better than I expected.
 
 ## The data, in a nutshell
 
-The model was trained from a corpus of 500,350 semantic rows, built from human DODa data plus a much larger controlled synthetic expansion. Each semantic row connects the same meaning across English, Arabic-script Darija, and Latin-script Darija. During preparation, each row could therefore become both an Arabic→English and an Arabizi→English example, while the two representations were kept together during splitting to avoid leakage across splits. Human DODa examples were sampled 3× during training, and I removed 57 semantic groups that overlapped with the external benchmark before the split. After expansion and human-data upsampling, the final training stream contained 1,185,690 directional examples. I wrote separately about how that dataset was generated in [How We Expanded DODa to 500K Darija Examples](/articles/how-we-expanded-doda-to-500k), because there is enough trouble in synthetic data to deserve its own article.
+The model was trained from a corpus of 500,350 semantic rows, built from human DODa data plus a much larger controlled synthetic expansion. Each semantic row connects the same meaning across English, Arabic-script Darija, and Latin-script Darija. During preparation, each row could therefore become both an Arabic→English and an Arabizi→English example, while the two representations were kept together during splitting to avoid leakage across splits. Human DODa examples were sampled 3× during training, and I removed 57 semantic groups that overlapped with the external benchmark before the split. After expansion and human-data upsampling, the final training stream contained 1,185,690 directional examples. I wrote separately about how that dataset was generated in [How We Expanded DODa to 500K Darija Examples](/projects/how-we-expanded-doda-to-500k), because there is enough trouble in synthetic data to deserve its own article.
 
 ## Training a 4B model without training 4B parameters
 

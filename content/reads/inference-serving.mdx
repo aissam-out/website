@@ -1,0 +1,16 @@
+---
+title: "Serving LLMs in production"
+slug: "inference-serving"
+date: 2026-07-11
+description: "Training gets the attention. Serving decides whether the system is usable: batching, KV cache, latency, throughput, and cost per successful request."
+category: "advanced"
+readingTime: "2 min"
+---
+
+A model that only runs in a notebook is not a product. Serving is where sequence length, concurrency, and money collide.
+
+The main levers are familiar once you stop treating the GPU as a mystery box. Batching raises throughput but can hurt tail latency. The KV cache makes long contexts cheaper to continue, until memory pressure forces smaller batches. Continuous batching and good schedulers keep the accelerator fed without turning every request into a queueing disaster.
+
+Utilization dashboards lie in a specific way: a busy GPU can still deliver poor useful throughput if kernels are tiny, transfers dominate, or batch shapes are wrong. Measure tokens per second, latency percentiles, and cost per successful task, not only “GPU at 99%.”
+
+The senior question is not “can we run this model?” It is “can we run the traffic we actually have, within latency and budget, without melting the box?”

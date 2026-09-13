@@ -18,11 +18,11 @@ export function Nav() {
           <Image
             src="/logo.png"
             alt={site.name}
-            width={220}
-            height={48}
+            width={280}
+            height={60}
             priority
             unoptimized
-            className="h-8 w-auto dark:invert md:h-9"
+            className="h-10 w-auto dark:invert md:h-12"
           />
         </Link>
 

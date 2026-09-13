@@ -1,0 +1,16 @@
+---
+title: "Direct Preference Optimization (DPO)"
+slug: "dpo"
+date: 2026-07-22
+description: "DPO turns preference pairs into a fine-tune without a full RL loop. It is often enough. It is not always a replacement for RLHF."
+category: "advanced"
+readingTime: "2 min"
+---
+
+RLHF usually means a reward model plus reinforcement learning against a frozen reference policy. That stack works, and it is heavy: unstable training, extra models, careful reward hacking watch.
+
+DPO skips the explicit reward model. Given pairs of preferred and rejected responses, it optimizes the policy to raise the likelihood of the winner relative to the loser, while staying close to a reference model. In practice, that often looks like a supervised fine-tune with a preference-aware loss.
+
+Use DPO when you have decent preference data and want alignment gains without running a full RL job. Stay skeptical when preferences are noisy, multi-objective, or heavily dependent on a learned reward that captures subtle product taste. RLHF (or richer preference methods) can still win when the reward signal is doing real work.
+
+The important decision is not brand-name preference algorithm. It is whether your preference data actually encodes the behavior you want in production.

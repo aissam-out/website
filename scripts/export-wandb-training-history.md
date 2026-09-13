@@ -9,7 +9,7 @@ public/data/wandb-eval-loss.csv
 
 Each is a direct Weights & Biases panel CSV export. Expected columns:
 
-- `train/global_step` — shared x-axis
+- `train/global_step`: shared x-axis
 - a value column whose name contains `train/loss` or `eval/loss` (not `__MIN` / `__MAX`)
 
 Do **not** merge the series into one CSV or interpolate missing eval points. The UI renders them as two stacked charts with separate y-scales.

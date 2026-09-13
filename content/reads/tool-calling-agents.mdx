@@ -1,0 +1,16 @@
+---
+title: "Tool-calling agents"
+slug: "tool-calling-agents"
+date: 2026-06-04
+description: "An agent is not a smarter prompt. It is a loop: model, tools, observation, decision. Most failures live in that loop, not in the model card."
+category: "advanced"
+readingTime: "2 min"
+---
+
+Function calling lets a model ask for a tool. An agent is what happens when you put that ability in a loop.
+
+The pattern is simple: the model proposes an action, your system runs a tool, the result comes back as context, and the model decides whether to call again or stop. That loop is the product. Without clear stop conditions, bounded retries, and honest tool schemas, you do not get autonomy. You get an expensive while-true.
+
+Senior work on agents is less about inventing a new planner and more about making the loop fail safely. Tools need narrow contracts. Side effects need confirmation or idempotency. Observation text needs to be small and structured enough that the next step is not drowning in noise. Infinite tool chatter, hallucinated arguments, and “almost correct” API calls are the usual failure modes.
+
+If you cannot say what ends the loop, what the agent is allowed to touch, and how you measure task success, you do not have an agent system yet. You have a demo that happens to call functions.

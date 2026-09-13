@@ -45,9 +45,9 @@ export default async function ThoughtPage({ params }: Props) {
       />
       <PostLayout
         post={post}
-        eyebrow={post.series ?? "Essay"}
+        eyebrow="Essay"
         backHref="/thoughts"
-        backLabel="All thoughts"
+        backLabel="All essays"
       />
     </>
   );

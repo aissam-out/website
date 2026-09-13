@@ -1,0 +1,16 @@
+---
+title: "Speaker embeddings"
+slug: "speaker-embeddings"
+date: 2026-07-29
+description: "A voice embedding is only as trustworthy as the audio you fed it. Bad segments still produce valid-looking vectors."
+category: "advanced"
+readingTime: "2 min"
+---
+
+Speaker embeddings turn a voice into a fixed vector so you can compare people across recordings. Cosine similarity then becomes a cheap way to ask whether two utterances likely came from the same speaker.
+
+The trap is that the embedding model will happily encode garbage. A clipped fragment, a mostly silent crop, a diarization error that mixes two talkers, or telephone noise can still yield a perfectly shaped 256-d vector. Syntactically valid is not the same as biometrically meaningful.
+
+Production systems therefore need a quality gate before indexing: usable duration, silence, clipping, and often an audio-quality model. Thresholds for “same speaker” are a product decision too. High precision usually matters more than recall when a false match has real consequences.
+
+If you treat every embedding as evidence, your vector database becomes a museum of confident mistakes. Filter first, then search.

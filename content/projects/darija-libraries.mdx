@@ -2,10 +2,15 @@
 title: Darija libraries
 slug: darija-libraries
 date: 2024-01-01
-description: Python libraries for Darija ⇆ English — word distance, translation lookup, and an LLM-assisted translator that does not pretend Darija is just messy Arabic.
+description: "Python libraries for Darija ⇆ English: word distance, translation lookup, and an LLM-assisted translator that does not pretend Darija is just messy Arabic."
 tags: [Python, Darija, NLP, Libraries]
 github: https://github.com/aissam-out/DarijaTranslatorAssistant
 featured: true
+related:
+  - href: /projects/darija-open-dataset
+    label: Darija Open Dataset
+  - href: /projects/teaching-translategemma-darija
+    label: Teaching TranslateGemma Darija
 ---
 
 Two small libraries around the same problem: Darija is not a cleaned-up Arabic, and generic string metrics treat it that way.
@@ -18,8 +23,8 @@ Two small libraries around the same problem: Darija is not a cleaned-up Arabic, 
 
 [DarijaTranslatorAssistant](https://github.com/aissam-out/DarijaTranslatorAssistant) sits on top of that. It does two jobs:
 
-1. **Assisted translation** — candidate translations for a Darija word or sentence, using the custom distance algorithm when the match is ambiguous.
-2. **LLM client** — talk to any hosted language model, with a built-in path for OpenAI if you pass a key and a model name.
+1. **Assisted translation**: candidate translations for a Darija word or sentence, using the custom distance algorithm when the match is ambiguous.
+2. **LLM client**: talk to any hosted language model, with a built-in path for OpenAI if you pass a key and a model name.
 
 The useful part is not “call GPT.” It is the combination: cache, normalisation, distance, then a model if you still need one.
 

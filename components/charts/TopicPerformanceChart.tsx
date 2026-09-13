@@ -44,7 +44,7 @@ function TooltipBody({
           <li key={String(entry.name)}>
             {entry.name}:{" "}
             <span className="tabular-nums text-cream">
-              {typeof entry.value === "number" ? round2(entry.value) : "—"}
+              {typeof entry.value === "number" ? round2(entry.value) : "-"}
             </span>
           </li>
         ))}

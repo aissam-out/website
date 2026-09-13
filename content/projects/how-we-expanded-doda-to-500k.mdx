@@ -2,9 +2,14 @@
 title: "How We Expanded DODa to 500K Darija Examples"
 slug: "how-we-expanded-doda-to-500k"
 date: 2026-09-07
-description: "Darija is inconvenient for NLP — two scripts, flexible spelling, heavy borrowing. DODa’s latest expansion turns that inconvenience into a controlled 500K-row training corpus."
-series: "Darija"
+description: "Darija is inconvenient for NLP: two scripts, flexible spelling, heavy borrowing. DODa’s latest expansion turns that inconvenience into a controlled 500K-row training corpus."
 github: "https://github.com/darija-open-dataset/dataset"
+featured: true
+related:
+  - href: /projects/darija-open-dataset
+    label: See the DODa project
+  - href: /projects/teaching-translategemma-darija
+    label: Teaching TranslateGemma Darija
 ---
 
 Darija has always been inconvenient for NLP. It moves between Arabic script and Arabizi, borrows freely from French and English, and treats spelling as flexible. Combined with the usual low-resource problem, this makes even basic tasks such as translation difficult.
@@ -132,7 +137,7 @@ Every generated row passes deterministic checks. The pipeline verifies that Arab
 
 The generator returns structured objects through a response schema rather than unconstrained prose. These checks do not prove that every accepted row is linguistically perfect, but they turn generation from a one-shot act of trust into an inspectable filtering process.
 
-![Controlled generation pipeline: sample constraints, generate with Gemini 3.1 Flash-Lite, validate and store — plus sampling weights and corpus composition](/media/how-we-expanded-doda-to-500K/controlled-generation.png)
+![Controlled generation pipeline: sample constraints, generate with Gemini 3.1 Flash-Lite, validate and store, plus sampling weights and corpus composition](/media/how-we-expanded-doda-to-500K/controlled-generation.png)
 
 ## The human data is still the anchor
 

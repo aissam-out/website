@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { PostDate } from "@/components/PostDate";
 import { hrefForPost, type Post } from "@/lib/content";
+import { kindLabels, labelForCategory } from "@/lib/site";
 
-function EndMark() {
+function EndMark({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center gap-4" aria-hidden>
       <div className="flex items-center gap-3 text-gold/70">
@@ -23,9 +24,14 @@ function EndMark() {
         </svg>
         <span className="h-px w-10 bg-line" />
       </div>
-      <p className="font-display text-lg italic text-muted">End of note</p>
+      <p className="font-display text-lg italic text-muted">{label}</p>
     </div>
   );
+}
+
+function relatedChip(item: Post) {
+  if (item.category) return labelForCategory(item.category);
+  return kindLabels[item.kind].singular;
 }
 
 export function PostCloser({
@@ -41,7 +47,7 @@ export function PostCloser({
 }) {
   return (
     <footer className="mt-16 border-t border-line pt-12">
-      <EndMark />
+      <EndMark label={kindLabels[post.kind].closer} />
 
       {related.length > 0 ? (
         <section className="mt-14" aria-labelledby="continue-reading">
@@ -74,7 +80,7 @@ export function PostCloser({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[0.65rem] uppercase tracking-[0.16em] text-gold">
-                      {item.category ?? item.kind}
+                      {relatedChip(item)}
                     </p>
                     {item.date ? (
                       <PostDate date={item.date} variant="inline" />
