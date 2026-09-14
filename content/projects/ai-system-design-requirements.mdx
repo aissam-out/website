@@ -65,7 +65,7 @@ Those are separate authorities. Copying an order response into a conversation do
 
 ![Platform boundary showing employees, identity, source repositories, model endpoint, and business systems around the assistant platform.](/media/ai-system-design-requirements/01.png)
 
-*Figure 1. The platform coordinates several authorities. Trust, ownership, and availability do not automatically transfer across an integration.*
+<Caption>Figure 1. The platform coordinates several authorities. Trust, ownership, and availability do not automatically transfer across an integration.</Caption>
 
 For the initial deployment, I would assume a model endpoint approved for the relevant data classification and region. A customer that prohibits external processing needs an inference deployment inside the permitted environment. A model gateway provides a useful policy and instrumentation boundary, but an interchangeable HTTP interface does not make different models equivalent in quality, latency, or tool behavior. Each permitted route needs its own evaluation.
 
@@ -81,7 +81,7 @@ Configuration can be cached by version. Security decisions need an explicit fres
 
 ![Control plane publishes immutable assistant versions consumed by execution, while current authorization is checked independently.](/media/ai-system-design-requirements/02.png)
 
-*Figure 2. Behavioral configuration is pinned to a run. Current access policy can still narrow what that run may do.*
+<Caption>Figure 2. Behavioral configuration is pinned to a run. Current access policy can still narrow what that run may do.</Caption>
 
 ## Model the state before splitting the services
 
@@ -114,7 +114,7 @@ The response contains the run identifier. The browser can stream progress and la
 
 ![Run acceptance, worker execution, evidence lookup, model proposal, and approval are connected through durable state.](/media/ai-system-design-requirements/03.png)
 
-*Figure 3. Accepting a run establishes durable work. Evidence gathering and proposal generation happen before any approved external write.*
+<Caption>Figure 3. Accepting a run establishes durable work. Evidence gathering and proposal generation happen before any approved external write.</Caption>
 
 For order 4817, a worker obtains the allowed order snapshot and policy evidence. The model prepares an explanation and a structured proposal. The application validates the proposal against the tool contract and business rules, records it, and exposes it for approval. Any later write passes through another authorization check. Detailed retry and recovery behavior belongs in part three, but the state needed for it already shapes this architecture.
 

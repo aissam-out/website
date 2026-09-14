@@ -36,7 +36,7 @@ An event history supports progress streaming and investigation. A current-state 
 
 ![Durable execution connects the API, run store, dispatch queue, workers, model and retrieval interfaces, and a guarded action adapter.](/media/ai-system-design-execution/01.png)
 
-*Figure 1. The runtime owns progress and recovery. The model proposes work inside that runtime; it does not own the durable execution record.*
+<Caption>Figure 1. The runtime owns progress and recovery. The model proposes work inside that runtime; it does not own the durable execution record.</Caption>
 
 The run transaction also writes an outbox entry. A dispatcher publishes that entry to the queue and marks its progress. Since publication and acknowledgment can fail independently, delivery is assumed to be at least once. Queue messages identify durable work rather than constitute the only copy of that work.
 
@@ -50,7 +50,7 @@ Awaiting approval means there is a complete proposal and a human decision is req
 
 ![Run states branch from execution into approval or reconciliation before reaching a terminal result.](/media/ai-system-design-execution/02.png)
 
-*Figure 2. Unknown external outcomes have their own state. Treating them as ordinary failures would encourage unsafe retries.*
+<Caption>Figure 2. Unknown external outcomes have their own state. Treating them as ordinary failures would encourage unsafe retries.</Caption>
 
 A deadline also needs interpretation. The budget for active investigation can expire while an approval has a separate, longer validity window. Once approval arrives, the execution window for submitting the action can be short again. Keeping one worker asleep for a day waiting for a button press would confuse human waiting time with compute consumption.
 
@@ -78,7 +78,7 @@ After the refund timeout, a provider with an idempotency and status-lookup contr
 
 ![After a timed-out refund submission, an action enters reconciliation and queries by its stable key before recording completion.](/media/ai-system-design-execution/03.png)
 
-*Figure 3. A timeout changes what the platform knows. Reconciliation establishes the external outcome before the run claims completion.*
+<Caption>Figure 3. A timeout changes what the platform knows. Reconciliation establishes the external outcome before the run claims completion.</Caption>
 
 If the API has no idempotency support, a local action table cannot close the gap between the remote commit and a lost response. A trustworthy query by a unique business reference might still support reconciliation. If it cannot, I would suspend the action for manual resolution instead of blindly retrying. This is a limitation of the integration contract that needs to be visible in the product.
 

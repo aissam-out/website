@@ -70,5 +70,8 @@ next-env.d.ts
 .cursor/
 !.cursor/rules/
 
+# Local image-generation venv
+.venv-img/
+
 # Optional local HTTPS certs
 certificates/

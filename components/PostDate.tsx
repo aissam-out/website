@@ -13,7 +13,6 @@ export function PostDate({
   if (!value) return null;
 
   const day = value.getDate();
-  const month = value.toLocaleDateString("en-GB", { month: "long" });
   const monthShort = value.toLocaleDateString("en-GB", { month: "short" });
   const year = value.getFullYear();
 
@@ -47,23 +46,13 @@ export function PostDate({
   return (
     <time
       dateTime={date}
-      className={`inline-flex items-stretch gap-3 ${className}`.trim()}
+      className={`inline-flex items-baseline gap-2 ${className}`.trim()}
     >
-      <span className="flex min-w-[3.25rem] flex-col items-center justify-center rounded-xl border border-line bg-canvas-2 px-2.5 py-2">
-        <span className="font-display text-3xl italic leading-none text-cream">
-          {day}
-        </span>
-        <span className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-gold">
-          {monthShort}
-        </span>
+      <span className="font-display text-3xl italic leading-none text-cream">
+        {day}
       </span>
-      <span className="flex flex-col justify-center">
-        <span className="font-display text-xl italic leading-tight text-cream">
-          {month}
-        </span>
-        <span className="mt-0.5 text-xs tracking-[0.12em] text-muted">
-          {year}
-        </span>
+      <span className="text-sm tracking-[0.04em] text-muted">
+        {monthShort} {year}
       </span>
     </time>
   );

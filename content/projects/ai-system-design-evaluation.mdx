@@ -1,0 +1,240 @@
+---
+title: "Evaluation, Releases, and Change"
+slug: ai-system-design-evaluation
+date: 2026-03-31
+description: "Design evaluation and release control so changes to models, prompts, retrieval, tools, and policies can be measured, staged, attributed, and reversed safely."
+series: "AI System Design"
+seriesOrder: 5
+shortTitle: Evaluation
+featured: false
+tags: [AI System Design, Evaluation, Reliability]
+---
+
+A new model is available. Offline tests suggest better answers and lower inference cost, so replacing the current route looks straightforward. At roughly the same time, the retrieval team has finished a new embedding generation, a prompt has been revised, and one tool schema has gained a required field.
+
+If all four changes reach production together and task quality moves, the platform needs to explain why.
+
+That sounds like an evaluation problem, but it begins as a versioning problem. A system whose behavior depends on code, model routing, prompts, retrieval state, tools, and policy cannot treat "the model version" as the identity of a release. Each run needs enough information to reconstruct which combination actually handled it.
+
+The previous four parts established the platform's [boundaries](/projects/ai-system-design-requirements/), [knowledge layer](/projects/ai-system-design-knowledge/), [durable execution](/projects/ai-system-design-execution/), and [behavior under load](/projects/ai-system-design-load/). This final part designs how that platform changes without discarding what it has already learned about correctness.
+
+## Give the system version an identity
+
+Part one pinned an immutable assistant version to each run. That protects a workflow from being silently edited halfway through execution, but the assistant configuration is only one contributor to behavior.
+
+A production run can also depend on the application build, workflow definition, prompt templates, model route, retrieval generation, reranker, tool contracts, and policy configuration. Some of those change independently.
+
+I would represent the deployed combination with a release manifest.
+
+| Dimension | Example identity recorded for a run |
+| --- | --- |
+| Application | Build or deployment revision |
+| Assistant | Published assistant version |
+| Workflow | Workflow definition version |
+| Prompts | Prompt bundle version |
+| Model | Route plus available provider/model revision |
+| Retrieval | Index generation, embedding version, reranker version |
+| Tools | Contract versions exposed to the run |
+| Policy | Relevant authorization and execution-policy version |
+
+The manifest does not need to duplicate every configuration value. It needs stable references to immutable or otherwise auditable definitions.
+
+A run records the manifest it started with. If a later investigation finds that tool selection failures increased after a release, those failures can be grouped by the exact tool contract, model route, and prompt bundle that produced them. Without those identifiers, a dashboard may know that quality changed on Tuesday and still be unable to establish what Tuesday actually changed.
+
+Some dependencies cannot provide immutable versions. A managed model provider may update an endpoint behind a stable name. The platform should record the identifier and metadata it can observe, then treat exact reproducibility as unavailable rather than pretending the endpoint is frozen.
+
+This is similar to the distinction from part three between auditability and deterministic replay. The goal is to preserve enough causality to investigate behavior even when the underlying probabilistic computation cannot be reproduced bit for bit.
+
+![Application, assistant, workflow, prompt, model, retrieval, tool, and policy versions converge into a release manifest pinned to a run.](/media/ai-system-design-evaluation/01.png)
+
+<Caption>Figure 1. A release manifest binds application, assistant, model, retrieval, tool, and policy versions to each run. Evaluation results and production outcomes can then be attributed to the combination that produced them.</Caption>
+
+## Evaluate the contracts before the average
+
+A single overall score is a poor release gate for this platform.
+
+The design contains promises with very different failure costs. A slightly weaker summary is inconvenient. Returning a passage the user is no longer authorized to see violates an access boundary. Preparing an incorrect refund amount is different again. Those cases should not compensate for one another inside one average.
+
+I would organize evaluation around the contracts established by the architecture.
+
+Deterministic properties are checked deterministically where possible. Tenant isolation, tool-schema validity, required approval references, state-machine transitions, and authorization decisions should not depend on an LLM judge deciding whether they seem acceptable.
+
+Retrieval gets its own evaluation. For a known query and authorization context, did relevant evidence enter the candidate set? Did stale or unauthorized revisions survive validation? Did the intended evidence reach context after reranking?
+
+Tool use gets another layer. Did the system choose an allowed capability? Were the arguments semantically correct? Was approval required where policy says it is required? Did the runtime behave correctly when the dependency timed out?
+
+End-to-end task evaluation then asks whether the employee received a useful and supported result. That layer captures interactions between components that look healthy independently.
+
+The suite therefore contains several kinds of cases:
+
+| Evaluation set | Purpose |
+| --- | --- |
+| Representative | Estimate behavior on the task distribution the product expects |
+| Regression | Preserve a failure that was previously understood and fixed |
+| Boundary | Exercise permissions, missing evidence, limits, timeouts, and invalid states |
+| Stress | Probe unusual context sizes, tool sequences, concurrency, or degraded dependencies |
+
+The distinction matters because those sets should not be sampled or interpreted the same way. A rare permission case may deserve permanent release-gate status even if it contributes almost nothing to ordinary traffic volume. A representative set should retain realistic frequency rather than being filled entirely with memorable failures.
+
+This also keeps evaluation from becoming a museum of edge cases. Regression tests preserve history. Representative tests estimate ordinary behavior. Both are useful, and they answer different questions.
+
+## Make a failed evaluation explainable
+
+An end-to-end result of `failed` is useful for release gating and weak for diagnosis.
+
+For every evaluation run, I want the same identifiers and intermediate records that make production executions inspectable: source revisions, retrieved candidates, evidence selected for context, model route, prompt bundle, proposed tool calls, validation outcomes, external dependency fixtures, and final result.
+
+Consider an evaluation where the assistant gives the wrong refund recommendation. Several different failures could produce that outcome.
+
+The relevant policy might never have been retrieved. Retrieval may have found it but the reranker dropped it. Correct evidence may have reached the model and been ignored. The model may have proposed the correct remedy with the wrong amount. The structured proposal may have been correct while a deterministic validation rule was misconfigured.
+
+Those are different release decisions.
+
+A retrieval regression should block an index change. A tool-validation defect belongs in application code. A model that repeatedly ignores correct evidence may justify a model or prompt change. Treating all three as "answer quality decreased" wastes the architecture built to separate them.
+
+Evaluation records should therefore retain component outcomes in addition to the final task result.
+
+This is especially useful when two candidate releases have the same overall success rate. One may fail mostly on harmless wording preferences while the other introduces a small number of authorization or action errors. Product risk is carried by the distribution of failures, not by the average alone.
+
+## Use model judges where the rubric permits them
+
+Some outputs have deterministic answers. A tool name, account identifier, permission decision, schema, or citation reference can often be evaluated without another model.
+
+Other outputs are harder. An explanation can be correct in several forms. A support answer may need to be concise, clear, sufficiently supported, and appropriately qualified when evidence is incomplete.
+
+A model judge can help with those cases, but it becomes another probabilistic component of the evaluation system.
+
+I would define a narrow rubric and calibrate the judge against a human-labelled sample before using it as a release gate. Pairwise comparison is often easier to calibrate than an unconstrained numerical score when the goal is to determine whether a candidate response is better than the current one.
+
+Disagreement deserves inspection. If experienced reviewers cannot agree whether a response satisfies the requirement, the problem may be the product specification or rubric rather than the candidate model.
+
+Judge drift also matters. Changing the judge model or its rubric changes the measuring instrument. Its version belongs beside the evaluation result. Historical comparisons should not silently cross that change.
+
+Human review remains useful for calibration, important regressions, ambiguous cases, and decisions whose cost justifies it. The evaluation pipeline should reduce the amount of human work required, while preserving humans where the system still lacks a trustworthy automatic measure.
+
+## Promote changes through progressively stronger evidence
+
+Passing offline evaluation means the candidate is ready for more evidence. It does not establish how the system will behave on production traffic.
+
+I would promote a release through explicit stages.
+
+The first stage runs component and end-to-end evaluations against fixed test cases. Load and recovery tests exercise the operational assumptions from parts three and four.
+
+The next useful stage is replay or shadow execution against representative production inputs where policy permits it. Read-only retrieval and model behavior can often be compared with the current release without affecting the user.
+
+Writes need stricter treatment. A shadow system must never issue a second refund because it wants to compare tool behavior. It can generate and validate the proposal, send the operation to a sandbox, or stop at the action boundary. This means shadowing an agentic system is inherently incomplete for some workflows.
+
+A canary then exposes a small, identifiable portion of live traffic to the candidate. Assignment should remain stable enough to interpret results. Routing one conversation back and forth between versions can create a comparison of mixed state rather than two coherent systems.
+
+Promotion criteria should be defined before the canary starts. Task success, protected-boundary violations, error rate, latency, cost, escalation rate, and specific evaluation slices can each have acceptable ranges. The release system pauses or rolls back when a stop condition is reached instead of relying on someone to notice a bad dashboard. Google's SRE workbook describes canarying as a partial, time-limited production change evaluated against a control before expanding exposure. [Source: Google SRE Workbook, Canarying Releases](https://sre.google/workbook/canarying-releases/).
+
+![A candidate release progresses through offline evaluation, shadow execution, canary traffic, and broad rollout, with stop conditions at every stage and production writes disabled during shadowing.](/media/ai-system-design-evaluation/02.png)
+
+<Caption>Figure 2. A candidate moves from offline evaluation through shadow execution and a limited canary before broader rollout. Each stage adds evidence while preserving a path to stop promotion.</Caption>
+
+A model or prompt experiment can also use controlled traffic splitting, but user-level metrics need care. Users, tenants, and tasks are heterogeneous. A candidate receiving mostly simple knowledge questions cannot be compared naively with a control receiving long investigations. The assignment and analysis need to preserve the task slices the release claims to improve.
+
+## Design rollback before calling a change reversible
+
+"Rollback" sounds simple when the release is an application binary.
+
+This platform changes more than code.
+
+A prompt bundle can usually be routed back quickly. A model route can be changed if the previous model remains available and satisfies current policy. An index generation can be reactivated only while it is sufficiently current and still reflects required deletions and authorization changes, as described in part two.
+
+Tool contracts are harder when outstanding runs already contain proposals created under the new schema. Part three established that paused work cannot safely resume against a tool whose arguments have changed meaning. Those runs need compatible execution, explicit migration, or cancellation.
+
+External actions are harder still. Rolling back the application does not reverse a refund that the new release already submitted.
+
+For every release dimension, I want an explicit reversal strategy:
+
+| Change | Possible reversal |
+| --- | --- |
+| Prompt/model route | Route new runs back to previous evaluated configuration |
+| Retrieval generation | Switch only if previous generation remains current and permission-safe |
+| Tool contract | Preserve compatible executor or migrate/cancel affected runs |
+| Workflow definition | Pin active runs; route new runs to previous version |
+| Database/data migration | Use migration-specific rollback or forward repair |
+| External side effect | Reconcile or compensate according to business semantics |
+
+This is why a release manifest is useful beyond observability. It lets the scheduler know which unfinished work still depends on an older execution environment.
+
+A candidate should not be described as safely reversible until those dependencies have been considered.
+
+![Different components of an AI release have different rollback semantics, from simple routing changes to irreversible external actions.](/media/ai-system-design-evaluation/03.png)
+
+<Caption>Figure 3. Reversal is component-specific. A software route can move backward while outstanding runs, indexed data, and external side effects may require compatibility, reconciliation, or compensation.</Caption>
+
+## Let production failures enter the evaluation suite
+
+Pre-release evaluation can only test failures someone thought to represent.
+
+Production supplies the cases nobody predicted.
+
+An employee asks a question whose answer sits inside an unusual table. Two policies share almost the same title. A connector produces malformed extraction for one document type. A model selects a tool correctly and fills one argument from the wrong piece of context. An external dependency returns a response shape that was legal but absent from the test fixture.
+
+When such a failure is understood, it should leave something behind.
+
+Sometimes that artifact is a normal software test. A state-machine bug does not need an LLM evaluation simply because it occurred inside an AI product.
+
+Sometimes it belongs in retrieval evaluation. Sometimes it becomes a tool-use regression case or an end-to-end task. Security incidents may create several tests at different boundaries.
+
+The useful loop is:
+
+production outcome → investigation → root cause → appropriate regression case → release gate
+
+The evaluation suite gradually accumulates the architecture's operational memory.
+
+That process needs curation. User feedback is valuable evidence and weak ground truth by itself. A thumbs-down can mean the answer was wrong, too long, slow, unsupported, or simply unwelcome. Production examples need diagnosis before they are converted into tests with expected behavior.
+
+Post-deployment monitoring also looks for changes that do not arrive through explicit feedback. Task mix can drift. A source connector can change document structure. A managed model endpoint can change behavior behind a stable name. Latency distributions can move while average quality remains stable. NIST's 2026 report on monitoring deployed AI systems catalogues why those post-deployment gaps remain hard in practice, from fragmented logging to drift that pre-release evaluation does not see. [Source: NIST AI 800-4, Challenges to the Monitoring of Deployed AI Systems](https://www.nist.gov/publications/challenges-monitoring-deployed-ai-systems-center-ai-standards-and-innovation).
+
+![A production failure is investigated and converted into a regression test at the architectural layer where its root cause occurred.](/media/ai-system-design-evaluation/04.png)
+
+<Caption>Figure 4. Production failures feed root-cause analysis, then become deterministic tests or AI evaluation cases at the layer where the failure originated.</Caption>
+
+## Monitor slices instead of waiting for the global metric to move
+
+Part four established operational monitoring by workload, tenant, dependency, and resource path. Quality needs the same discipline.
+
+Suppose overall task success remains stable while questions involving recently updated documents deteriorate. The global metric can hide the problem because that slice is small. The same is true for one language, one tool, one document type, long contexts, low-quality evidence, or a particular tenant configuration.
+
+The platform already records enough metadata to inspect these slices without copying arbitrary sensitive payloads into analytics. Relevant version identifiers, task class, tool path, retrieval generation, timing, outcome category, and evaluation labels can support comparison while payload access remains separately controlled.
+
+I would monitor a small set of known critical slices continuously and investigate new slices when incidents suggest them. Creating hundreds of dashboards in advance usually produces noise rather than coverage.
+
+Alerting should also reflect consequence. One confirmed cross-tenant disclosure matters differently from a small movement in stylistic preference. Thresholds for release blocking and incident response should follow the contracts from part one, not the convenience of whichever metric is easiest to graph.
+
+## Change the model and inspect what must move with it
+
+Suppose the current model provider announces that the version used by the platform will be retired.
+
+A candidate replacement passes general language benchmarks, costs less, and supports the same tool-call schema. None of those facts is enough to switch the route.
+
+I would run the platform's own evaluation suite against the candidate, preserving the same retrieval generation and tool contracts initially so the model change can be observed in relative isolation. Failures are inspected by slice: evidence use, qualification under missing information, proposal correctness, tool selection, argument generation, refusal behavior, latency, and cost.
+
+Read-only production traffic can then be shadowed where policy allows. Proposal-generating investigations stop before external effects. A limited canary follows if the candidate remains acceptable.
+
+If tool-call behavior exposes a systematic incompatibility, the choice is explicit. Adapt the harness or tool description and evaluate that combination as a new release candidate. Do not quietly modify the prompt and tool schema halfway through the model comparison and continue attributing the result to the model alone.
+
+Once promoted, runs record the new release manifest. Monitoring compares its outcome distribution with the previous release while the rollback route remains available.
+
+If the old provider version disappears, that rollback path eventually closes. The operational record should say so. A release process cannot promise reversibility after the component required for reversal no longer exists.
+
+## Finish with a system that can change deliberately
+
+The architecture started with a product request: let customers create assistants that work with documents and tools.
+
+The first part turned that request into boundaries and guarantees. The knowledge layer made evidence versioned and permission-aware. The execution layer preserved actions across retries, approvals, and uncertain external outcomes. The capacity layer made waiting, overload, and resource limits visible.
+
+Those mechanisms also create the conditions for controlled change.
+
+Runs have identities. Evidence has revisions. Workflows and assistants have versions. Actions have durable outcomes. Traces preserve enough context to diagnose failures. Capacity is measured against task behavior rather than hardware activity alone.
+
+Evaluation can therefore attach to the system that actually exists instead of testing an isolated model and hoping the result transfers.
+
+A platform is ready to evolve when an important change can answer a few concrete questions: which parts changed, which behavior improved, which behavior regressed, which production runs used the change, what happens to unfinished work, and what remains safe to roll back.
+
+The model will change. So will the prompts, retrieval strategy, tools, policies, infrastructure, and workload.
+
+The architecture should make those changes observable before it makes them routine.

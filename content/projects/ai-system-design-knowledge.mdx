@@ -34,7 +34,7 @@ For each observed revision, the connector creates a document-version record and 
 
 ![Resumable ingestion moves source changes through a catalog, workers, versioned artifacts, and candidate indexes before publication.](/media/ai-system-design-knowledge/01.png)
 
-*Figure 1. Discovery and publication have different checkpoints. An observed change remains recoverable while downstream processing catches up.*
+<Caption>Figure 1. Discovery and publication have different checkpoints. An observed change remains recoverable while downstream processing catches up.</Caption>
 
 I would begin with document-level jobs and explicit stage checkpoints rather than introduce a separate service for every transform. A worker can reuse a successful parse after an embedding timeout. Larger or independently constrained stages can later receive their own queues. Jobs carry artifact references, leaving large file bytes in object storage rather than repeatedly copying them through the message broker.
 
@@ -67,7 +67,7 @@ Search cannot magically share a transaction with the catalog. Queries therefore 
 
 ![A document stays on revision 7 while revision 8 is staged and verified; publication switches the active pointer only after readiness.](/media/ai-system-design-knowledge/02.png)
 
-*Figure 2. Staging isolates incomplete work. The catalog selects the current revision; query-time validation prevents stale candidates from reaching context.*
+<Caption>Figure 2. Staging isolates incomplete work. The catalog selects the current revision; query-time validation prevents stale candidates from reaching context.</Caption>
 
 This design prefers a temporary failure to assemble sufficient evidence over mixing incompatible revisions. It also avoids claiming a globally atomic snapshot across every source. An ordinary answer uses validated revisions observed during that request, and records which ones it used. A use case requiring a point-in-time snapshot across a complete corpus would need an explicit corpus generation or snapshot mechanism.
 
@@ -83,7 +83,7 @@ Caches and conversation history participate in this policy. A passage cached yes
 
 ![Permission-aware lexical and vector retrieval converge on candidate validation, reranking, and a bounded evidence package.](/media/ai-system-design-knowledge/03.png)
 
-*Figure 3. Candidate generation is scoped, and evidence is checked again before model access. Permissions apply to every path by which text enters the answer.*
+<Caption>Figure 3. Candidate generation is scoped, and evidence is checked again before model access. Permissions apply to every path by which text enters the answer.</Caption>
 
 ## Spend the context budget on evidence
 

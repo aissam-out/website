@@ -309,7 +309,7 @@ export const seriesCopy: Record<
   },
   "ai-system-design": {
     blurb:
-      "A reference design for an assistant platform, followed from product guarantees through knowledge, durable execution, and load.",
+      "A reference design for an assistant platform, followed from product guarantees through knowledge, durable execution, load, and controlled change.",
     startLabel: "Start with architecture",
   },
 };

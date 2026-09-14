@@ -14,7 +14,7 @@ The assistant works well with a few users. Then an ingestion backfill starts, se
 
 The delay can be accumulating before inference, inside a saturated connection pool, behind a large request, or at an external API. More model capacity helps only some of those cases. Retries and duplicate submissions can amplify the others. At this point, the queue is part of the product experience whether the architecture diagram includes it or not.
 
-The previous articles established the platform's [boundaries](/projects/ai-system-design-requirements/), [knowledge layer](/projects/ai-system-design-knowledge/), and [durable execution](/projects/ai-system-design-execution/). This final article asks whether that system can deliver useful results within its operating constraints. All numerical examples below are illustrative calculations, not measurements from a deployed system or a hardware benchmark.
+The previous articles established the platform's [boundaries](/projects/ai-system-design-requirements/), [knowledge layer](/projects/ai-system-design-knowledge/), and [durable execution](/projects/ai-system-design-execution/). This article asks whether that system can deliver useful results within its operating constraints. All numerical examples below are illustrative calculations, not measurements from a deployed system or a hardware benchmark.
 
 ## Describe the work behind a request
 
@@ -34,7 +34,7 @@ One illustrative knowledge request might spend 150 milliseconds on ingress and a
 
 ![A 9.6-second illustrative request is split into authorization, worker wait, retrieval, reranking, model admission and prefill, and generation.](/media/ai-system-design-load/01.png)
 
-*Figure 1. One example trace, not percentile measurements. Time to first output and completion expose different parts of the user experience.*
+<Caption>Figure 1. One example trace, not percentile measurements. Time to first output and completion expose different parts of the user experience.</Caption>
 
 I would instrument those boundaries rather than put one timer around the model SDK. For parallel operations, end-to-end latency follows the critical path; their durations should not all be added together. Component p95 values also do not sum into an end-to-end p95. The target has to be evaluated on actual complete requests with the relevant workload and failure behavior.
 
@@ -52,7 +52,7 @@ Suppose, purely for calculation, that one serving replica has been measured at 1
 
 ![Illustrative capacity arithmetic converts peak calls and tokens into six planned replicas plus one for a single-replica failure.](/media/ai-system-design-load/02.png)
 
-*Figure 2. A worked estimate with an assumed benchmark. The same input mix and latency constraint must hold before the replica count has practical meaning.*
+<Caption>Figure 2. A worked estimate with an assumed benchmark. The same input mix and latency constraint must hold before the replica count has practical meaning.</Caption>
 
 The arithmetic is deliberately easy to challenge. The 70% factor is an assumption, not a universal optimum, and the example benchmark is hypothetical. Output throughput alone is insufficient if prefill saturates first. The final count needs a mixed-workload test at the planned concurrency, plus failure testing and external-dependency limits. Buying seven replicas from this paragraph would confuse a sizing method with a sizing result.
 
@@ -66,7 +66,7 @@ Interactive inference gets a reserved capacity budget. Background work uses sepa
 
 ![Interactive and ingestion queues use separate worker pools and bounded resource allocations, with tenant admission before the interactive path.](/media/ai-system-design-load/03.png)
 
-*Figure 3. Queue separation must be accompanied by limits at shared bottlenecks. Otherwise the workloads meet again at the same saturated resource.*
+<Caption>Figure 3. Queue separation must be accompanied by limits at shared bottlenecks. Otherwise the workloads meet again at the same saturated resource.</Caption>
 
 Tenant fairness also requires more than a global concurrency cap. One customer submitting long investigations can occupy a disproportionate share of workers and model memory. I would begin with per-tenant active-run limits, call budgets, and weighted scheduling, then refine the accounting using observed token demand and task cost. Equal request counts are not necessarily equal resource use.
 
@@ -90,15 +90,15 @@ Caching can improve this situation, but only within correctness boundaries. Quer
 
 I would introduce semantic answer caching only for a constrained class of stable questions where equivalence and access can be tested. The platform still records when evidence was obtained and rechecks permission before exposing cached sensitive content. A cache hit is a performance event, not a waiver of the data contract.
 
-## Release a system version and evaluate the outcome
+## Measure capacity changes against task outcomes
 
-A deployment can change code, prompt templates, retrieval settings, index generation, model routing, and tool contracts. I would record their identifiers together for each run and expose them in comparison dashboards. Otherwise a quality regression gets attributed to the most visible change while a simultaneous index migration goes unnoticed.
+Capacity work can change product behavior even when no prompt or model is intentionally changed. A new serving configuration can alter latency and timeout rates. A cache can return faster answers while introducing freshness mistakes. A queue policy can improve average throughput while making one tenant wait much longer.
 
-Offline evaluation should cover representative tasks, permission boundaries, incomplete evidence, tool validation, and integration failures. A staged release then compares task outcomes, latency, cost, and failure modes on a limited population. Shadow execution is useful for reads and proposals; production writes must be disabled or redirected to a sandbox to avoid duplicating business actions.
+For load tests and staged capacity changes, I would therefore record the same application, assistant, retrieval, model-route, and tool identifiers carried by production runs. Performance measurements remain attached to the system configuration that produced them.
 
-Rollback needs compatibility with outstanding runs and data state. Reverting the application does not undo a refund, and pointing retrieval at an old index does not make its contents current. Each change should state its rollback mechanism and the conditions under which that mechanism remains safe.
+The cost metric I care about is total cost divided by successfully completed tasks, with an explicit definition of success for each task class. The numerator includes failed attempts, retries, retrieval, background processing, and allocated infrastructure costs. User abandonment and unresolved cases should remain visible rather than disappear from a flattering average. Human handling effort is also worth measuring where it can be attributed reliably.
 
-The cost metric I care about is total cost divided by successfully completed tasks, with an explicit definition of success for each task class. The numerator includes failed attempts, retries, retrieval, background processing, and allocated infrastructure costs. User abandonment and unresolved cases should remain visible rather than vanish from a flattering average. Human handling effort is also worth measuring where it can be attributed reliably.
+A capacity change that lowers cost while damaging task completion has moved the bottleneck rather than solved it. The final part of this series treats release evaluation directly: how model, prompt, retrieval, tool, and application changes are versioned, compared, staged, and rolled back.
 
 ## Change the traffic requirement
 

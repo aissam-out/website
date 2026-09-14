@@ -1,4 +1,8 @@
-import type { AnchorHTMLAttributes, ImgHTMLAttributes } from "react";
+import type {
+  AnchorHTMLAttributes,
+  ImgHTMLAttributes,
+  ReactNode,
+} from "react";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import rehypePrettyCode from "rehype-pretty-code";
@@ -10,6 +14,40 @@ import {
   TopicPerformanceChart,
   TrainingCurves,
 } from "@/components/charts";
+
+function textFromChildren(children: ReactNode): string {
+  if (children == null || typeof children === "boolean") return "";
+  if (typeof children === "string" || typeof children === "number") {
+    return String(children);
+  }
+  if (Array.isArray(children)) {
+    return children.map(textFromChildren).join("");
+  }
+  if (typeof children === "object" && "props" in children) {
+    return textFromChildren(
+      (children as { props?: { children?: ReactNode } }).props?.children,
+    );
+  }
+  return "";
+}
+
+function Caption({ children }: { children?: ReactNode }) {
+  const text = textFromChildren(children).trim();
+  const match = /^(Figure\s+\d+)\.\s*([\s\S]+)$/i.exec(text);
+
+  return (
+    <div className="post-caption" role="note">
+      {match ? (
+        <>
+          <span className="post-caption__label">{match[1]}</span>
+          <span className="post-caption__body">{match[2]}</span>
+        </>
+      ) : (
+        <span className="post-caption__body">{children}</span>
+      )}
+    </div>
+  );
+}
 
 const components = {
   a: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -39,6 +77,7 @@ const components = {
       />
     );
   },
+  Caption,
   MetricHero,
   ScriptGapChart,
   TopicPerformanceChart,

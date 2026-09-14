@@ -76,9 +76,9 @@ export function EngineeringTimeline({
       </div>
 
       {caption ? (
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted italic">
-          {caption}
-        </p>
+        <div className="post-caption mt-4">
+          <span className="post-caption__body">{caption}</span>
+        </div>
       ) : null}
     </figure>
   );

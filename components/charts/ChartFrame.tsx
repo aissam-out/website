@@ -28,9 +28,9 @@ export function ChartFrame({
         <div className="px-3 py-4 sm:px-5 sm:py-5">{children}</div>
       </div>
       {caption ? (
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted italic">
-          {caption}
-        </p>
+        <div className="post-caption mt-3">
+          <span className="post-caption__body">{caption}</span>
+        </div>
       ) : null}
     </figure>
   );
