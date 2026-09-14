@@ -63,8 +63,10 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-20">
-        <SectionHeader eyebrow="Tools" title="Stack I actually" emphasis="use" />
-        <StackBadges />
+        <SectionHeader eyebrow="Stack" title="What I build" emphasis="with" />
+        <div className="mt-8">
+          <StackBadges />
+        </div>
       </section>
 
       <section className="mt-20">

@@ -280,45 +280,75 @@ export const papers: ReadonlyArray<{
 
 export type StackItem = {
   name: string;
+  /** simple-icons slug, or a local path under /icons/… */
   icon: string;
 };
+
+export const stackCapabilities = [
+  "LLM Systems",
+  "Retrieval",
+  "Speech AI",
+  "GPU Infrastructure",
+] as const;
+
+export const stackIntro =
+  "I build AI systems from model to production: inference, retrieval, speech, GPU workloads, APIs, and the infrastructure that keeps them running.";
 
 export const stackGroups: ReadonlyArray<{
   label: string;
   items: ReadonlyArray<StackItem>;
 }> = [
   {
-    label: "Models & languages",
+    label: "Machine Learning",
     items: [
       { name: "Python", icon: "python" },
       { name: "PyTorch", icon: "pytorch" },
-      { name: "TensorFlow", icon: "tensorflow" },
-      { name: "Keras", icon: "keras" },
-      { name: "Flask", icon: "flask" },
-    ],
-  },
-  {
-    label: "Daily tools",
-    items: [
-      { name: "ChatGPT", icon: "openai" },
-      { name: "Claude", icon: "anthropic" },
-      { name: "DeepSeek", icon: "deepseek" },
-      { name: "GitHub Copilot", icon: "githubcopilot" },
       { name: "Hugging Face", icon: "huggingface" },
-      { name: "Cursor", icon: "cursor" },
+      { name: "scikit-learn", icon: "scikitlearn" },
+      { name: "NumPy", icon: "numpy" },
+      { name: "CUDA", icon: "nvidia" },
     ],
   },
   {
-    label: "Systems",
+    label: "AI Engineering",
     items: [
-      { name: "Alexa", icon: "amazonalexa" },
-      { name: "AWS", icon: "amazonwebservices" },
-      { name: "DigitalOcean", icon: "digitalocean" },
+      { name: "FastAPI", icon: "fastapi" },
+      { name: "vLLM", icon: "vllm" },
+      { name: "Transformers", icon: "/icons/stack/transformers.svg" },
+      {
+        name: "OpenAI API",
+        icon: "https://cdn.jsdelivr.net/npm/simple-icons@v15/icons/openai.svg",
+      },
+      { name: "MCP", icon: "modelcontextprotocol" },
+      { name: "MLflow", icon: "mlflow" },
+    ],
+  },
+  {
+    label: "Infrastructure",
+    items: [
       { name: "Docker", icon: "docker" },
-      { name: "MongoDB", icon: "mongodb" },
-      { name: "Postgres", icon: "postgresql" },
-      { name: "Redis", icon: "redis" },
+      { name: "Kubernetes", icon: "kubernetes" },
+      { name: "Linux", icon: "linux" },
+      { name: "Nginx", icon: "nginx" },
+      { name: "AWS", icon: "/icons/stack/aws.svg" },
+      { name: "Google Cloud", icon: "googlecloud" },
       { name: "Git", icon: "git" },
+      { name: "GitHub Actions", icon: "githubactions" },
+      { name: "Prometheus", icon: "prometheus" },
+      { name: "Grafana", icon: "grafana" },
+      { name: "Terraform", icon: "terraform" },
+      { name: "NVIDIA GPU Operator", icon: "nvidia" },
+    ],
+  },
+  {
+    label: "Data & Retrieval",
+    items: [
+      { name: "PostgreSQL", icon: "postgresql" },
+      { name: "Redis", icon: "redis" },
+      { name: "MongoDB", icon: "mongodb" },
+      { name: "Qdrant", icon: "qdrant" },
+      { name: "MinIO", icon: "minio" },
+      { name: "Elasticsearch", icon: "elasticsearch" },
     ],
   },
 ];
