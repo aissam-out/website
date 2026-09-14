@@ -1,0 +1,114 @@
+---
+title: "The Knowledge Layer"
+slug: ai-system-design-knowledge
+date: 2026-03-10
+description: "Design the knowledge layer so document updates, permissions, and index migrations stay consistent with what the assistant can cite."
+series: "AI System Design"
+seriesOrder: 2
+shortTitle: Knowledge
+featured: false
+tags: [AI System Design, RAG, Retrieval]
+---
+
+A customer uploads a new refund policy, removes its predecessor, and revokes a contractor's access to the support workspace. Ten minutes later, the contractor asks an assistant about refunds. An embedding model can perform perfectly, a search engine can return highly relevant passages, and the application can still produce an answer it should never have shown.
+
+The difficult part of a knowledge system is maintaining the relationship between searchable information and the authority behind it. Documents change, connectors fail, permissions diverge, and derived indexes outlive their sources. Retrieval quality matters, but its meaning depends on whether the retrieved information is current, complete, and permitted.
+
+In [part one](/projects/ai-system-design-requirements/), I designed a platform for internal assistants. Its first tasks are answering policy questions and investigating delayed orders. This article designs the knowledge layer beneath those tasks. The workload remains illustrative: one million documents, roughly one percent changing daily, and a 15-minute freshness target for ordinary content updates when the source is reachable. Access revocations require a separate policy.
+
+## Decide which information should be indexed
+
+I would index relatively stable knowledge such as policies, manuals, and internal procedures. Current order status should come from the operational API when the investigation runs. Embedding an order snapshot does not establish how long that snapshot remains valid, and recovering "the most semantically similar order" is an unnecessarily indirect way to look up a known identifier.
+
+The boundary is functional. Search helps locate relevant evidence across a body of text. A transactional lookup establishes current structured state. An answer may need both, and it should preserve their provenance separately. For order 4817, I want the model to receive a policy version and an order snapshot with a retrieval time, not an undifferentiated block of supposedly authoritative context.
+
+Source repositories remain authoritative for document contents and source access rules. The platform maintains an operational catalog of what it has observed and processed. Object storage preserves source versions according to retention policy; search indexes are rebuildable projections. I would make that hierarchy explicit before adding a vector database.
+
+## Build ingestion as resumable work
+
+A connector discovers source changes and records synchronization progress. When the source provides a durable change cursor, the connector can resume from it. Webhooks are useful for reducing delay, but I would still reconcile periodically because notifications can be delayed, duplicated, or missed. A source without reliable change tracking needs periodic listing and comparison, with the resulting freshness and load limitations stated honestly.
+
+A discovery checkpoint means that changes have been durably recorded for processing. It does not mean every corresponding document is already searchable. Advancing a connector cursor only after an entire batch has been embedded would let one malformed file stall unrelated updates. Advancing it before persisting work would risk losing changes after a crash.
+
+For each observed revision, the connector creates a document-version record and an ingestion job. Workers fetch the revision, parse it, normalize the extracted representation, create chunks, calculate embeddings, and write search records. Artifacts are addressed by tenant, source document identity, revision, and pipeline version. A content hash helps detect repeated bytes, but it cannot replace document identity: identical text can have different permissions and provenance.
+
+![Resumable ingestion moves source changes through a catalog, workers, versioned artifacts, and candidate indexes before publication.](/media/ai-system-design-knowledge/01.png)
+
+*Figure 1. Discovery and publication have different checkpoints. An observed change remains recoverable while downstream processing catches up.*
+
+I would begin with document-level jobs and explicit stage checkpoints rather than introduce a separate service for every transform. A worker can reuse a successful parse after an embedding timeout. Larger or independently constrained stages can later receive their own queues. Jobs carry artifact references, leaving large file bytes in object storage rather than repeatedly copying them through the message broker.
+
+Workers apply bounded retries to transient errors and quarantine documents with persistent parsing or format failures. The source dashboard should distinguish observed, processing, searchable, and failed states. "Upload complete" is otherwise liable to mean that the bytes arrived while the user assumes the assistant can already use them.
+
+## Estimate the derived data before choosing its home
+
+Suppose a sample suggests an average of 20 chunks per document. One million documents would produce 20 million chunks. At 1,024 dimensions and four bytes per dimension, raw float32 vectors alone occupy about 81.9 GB in decimal units. That excludes text, metadata, search structures, replicas, and spare space for migrations. These are hypothetical inputs; the calculation shows what to measure.
+
+At one percent of documents changing daily, a full-document regeneration strategy would create roughly 200,000 chunk updates per day under the same average. The average rate is modest compared with a large initial backfill or a batch of unusually long files. Both steady-state freshness and backfill completion time need capacity targets.
+
+Storage roles follow from their access patterns:
+
+| Store | What it owns in this design |
+| --- | --- |
+| Relational catalog | Observed revisions, publication pointers, jobs, permission metadata, and deletion state |
+| Object storage | Source files and versioned extracted artifacts, subject to retention |
+| Search backend | Lexical and vector retrieval records for published or staged generations |
+| Cache | Reusable results with explicit version, identity, and expiry boundaries |
+
+For the assumed scale, I would benchmark a search backend supporting lexical and vector retrieval against a representative corpus. Combining these capabilities can reduce synchronization work between two independent retrieval systems. A separate vector engine remains reasonable when its filtering, capacity, or operational characteristics justify the extra projection. Product names become meaningful after the workload and permission model are known.
+
+## Publish complete revisions
+
+Updating chunks in place creates a visibility problem. A query may retrieve half of the old document and half of the new one while workers are still processing the update. Deleting the old chunks first avoids that mixture by creating a period with missing evidence.
+
+I would stage a new immutable document revision, verify that its expected chunks are present and query-visible, then switch the catalog's active revision using a conditional update. If revision 9 has already become active, a late worker for revision 8 must not move the document backward. The old revision remains available for recovery or permitted audit until garbage collection removes it.
+
+Search cannot magically share a transaction with the catalog. Queries therefore retrieve revision-tagged candidates and validate them against the active-revision map before context assembly. They may need bounded over-fetching or another retrieval attempt after rejecting stale candidates. Before cutover, the publication check must establish visibility across the search replicas that will actually serve queries. A pointer update alone provides no such guarantee.
+
+![A document stays on revision 7 while revision 8 is staged and verified; publication switches the active pointer only after readiness.](/media/ai-system-design-knowledge/02.png)
+
+*Figure 2. Staging isolates incomplete work. The catalog selects the current revision; query-time validation prevents stale candidates from reaching context.*
+
+This design prefers a temporary failure to assemble sufficient evidence over mixing incompatible revisions. It also avoids claiming a globally atomic snapshot across every source. An ordinary answer uses validated revisions observed during that request, and records which ones it used. A use case requiring a point-in-time snapshot across a complete corpus would need an explicit corpus generation or snapshot mechanism.
+
+## Put authorization inside retrieval
+
+The request arrives with a server-established tenant and principal. The retrieval layer derives the allowed scope and applies tenant and access filters during candidate generation. It then checks the selected candidates against current authoritative permission metadata before any text reaches a model or an external reranker. Fetching unrestricted passages and asking the model to ignore forbidden ones has already crossed the boundary.
+
+Complex source permissions are easy to flatten incorrectly. Nested groups, inherited restrictions, and explicit deny rules may not fit a simple list of allowed groups. A connector must either preserve the source semantics, use a reliable authorization check, or decline unsupported content. An approximation that widens access is a security defect, however convenient it makes the index.
+
+For ordinary document edits, a 15-minute freshness target may be acceptable. Access revocation has a different consequence. Where the source supports it, I would revalidate sensitive document access at query time and fail closed when that check is unavailable. Where it does not, the product must specify the bounded revocation lag it can support; "immediate" is an impossible promise without an observable, authoritative change path.
+
+Caches and conversation history participate in this policy. A passage cached yesterday can be unauthorized today. Sensitive result caches need identity and authorization-version boundaries plus current checks before reuse. Historical evidence should also be rechecked before being reinserted into model context. Removing index entries while retaining unrestricted copies in chat history leaves a second disclosure path.
+
+![Permission-aware lexical and vector retrieval converge on candidate validation, reranking, and a bounded evidence package.](/media/ai-system-design-knowledge/03.png)
+
+*Figure 3. Candidate generation is scoped, and evidence is checked again before model access. Permissions apply to every path by which text enters the answer.*
+
+## Spend the context budget on evidence
+
+For a policy question, I would begin with lexical and vector retrieval in parallel. Lexical search is useful for exact policy names, codes, and unusual terms; vector retrieval helps when the user's wording differs from the source. Candidate sets can be merged using a rank-based method, deduplicated, and reranked before a bounded selection is passed to generation.
+
+The precise candidate counts belong in evaluation and capacity tests. I would start with a small candidate budget, then measure whether additional candidates recover relevant evidence enough to justify their latency and reranking cost. Increasing the context window can conceal a poor retrieval strategy by charging every request to read more irrelevant material.
+
+The evidence package should include stable document identity, revision, source location, relevant timestamps, and the selected passage. If the task requires a missing policy clause or the sources disagree, the workflow can ask for clarification or return a qualified result. A similarity score is not a probability that the answer is correct, and a citation merely proves that a source was attached. Neither establishes that the source supports the actual claim.
+
+That is why I would keep retrieval diagnostics separate from final-answer evaluation. A wrong answer with the right evidence is a different engineering problem from a correct-looking answer assembled without it. For a regression case, I want to know which relevant documents were available, which survived permission and revision checks, which were ranked, and which entered context.
+
+## Treat deletion and migrations as normal operations
+
+Deletion begins with a catalog tombstone that prevents new retrieval use, then propagates to search entries, cached evidence, and retained artifacts according to policy. Physical erasure may finish later than logical exclusion. Backups and historical outputs require their own retention treatment, and the system should avoid claiming that an index delete erases every prior disclosure.
+
+Changing the embedding model is another form of data migration. I would create a new index generation with its own embedding and chunking versions, backfill it, and keep processing subsequent source changes until it reaches the required watermark. Queries against the new generation must use the matching query embedder. Comparing vectors from incompatible spaces cannot be repaired by a score threshold.
+
+Before cutover, I would shadow representative authorized queries and compare evidence coverage, permission behavior, latency, and answer quality. A routing switch activates the new generation. The previous generation remains a rollback option only while it is also sufficiently current and retains current deletion and permission enforcement. A stale index is not a safe escape hatch merely because it used to work.
+
+Useful operational measures include discovery lag, publication lag, the oldest unfinished job, quarantined revisions, and the fraction of queries left without sufficient authorized evidence. A single count of indexed documents cannot reveal whether the most recently changed policy has been stuck for six hours.
+
+## Change the freshness requirement
+
+Suppose the customer now says that every answer must reflect a policy edit made seconds earlier. Increasing ingestion workers may improve average delay, but it cannot guarantee discovery when the source only supports a periodic listing. The requirement forces a different contract: a source change stream with adequate guarantees, a synchronous source lookup for the relevant document, or a refusal while freshness cannot be established.
+
+There is also a product question: which facts actually need second-level freshness? Current order state already uses a live API. Applying the same requirement to an archive of technical manuals would create cost and dependency risk without necessarily improving the task. I would narrow the requirement to the information whose age can change the decision, then design that path explicitly.
+
+The knowledge layer is ready when I can explain why a passage is present, which source revision it represents, who may see it, and how it disappears. Those properties make retrieval dependable enough for the next layer to act on its output.

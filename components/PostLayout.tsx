@@ -8,6 +8,7 @@ import {
   getSeriesForPost,
   hrefForPost,
   hrefForSeries,
+  pathForKind,
   type Post,
   type Series,
   type ListingItem,
@@ -15,8 +16,9 @@ import {
 import { formatDateLong } from "@/lib/dates";
 import { kindLabels, seriesCopy, site } from "@/lib/site";
 
-function shortChapterTitle(title: string) {
-  return title.replace(/^.*?:\s*/, "");
+function chapterLabel(chapter: { title: string; shortTitle?: string }) {
+  if (chapter.shortTitle) return chapter.shortTitle;
+  return chapter.title.replace(/^.*?:\s*/, "");
 }
 
 export function PostLayout({
@@ -167,7 +169,7 @@ export function PostLayout({
         >
           {series.chapters.map((chapter) => {
             const active = chapter.slug === post.slug;
-            const label = shortChapterTitle(chapter.title);
+            const label = chapterLabel(chapter);
             return (
               <Link
                 key={chapter.slug}
@@ -182,7 +184,7 @@ export function PostLayout({
               >
                 <span className="sm:hidden">{chapter.seriesOrder}</span>
                 <span className="hidden sm:inline">
-                  Ch. {chapter.seriesOrder} · {label}
+                  {chapter.seriesOrder}. {label}
                 </span>
               </Link>
             );
@@ -205,7 +207,7 @@ export function PostLayout({
                 Previous
               </p>
               <p className="mt-2 font-display text-xl italic text-cream">
-                {prev.title}
+                {chapterLabel(prev)}
               </p>
             </Link>
           ) : (
@@ -220,7 +222,7 @@ export function PostLayout({
                 Next
               </p>
               <p className="mt-2 font-display text-xl italic text-cream">
-                {next.title}
+                {chapterLabel(next)}
               </p>
             </Link>
           ) : null}
@@ -254,7 +256,7 @@ export function SeriesCard({ series }: { series: Series }) {
     <div className="flex flex-col rounded-3xl border border-line bg-canvas-2 p-6 sm:col-span-2 lg:col-span-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-[0.16em] text-gold">Series</p>
-        <p className="text-xs text-muted">
+        <p className="text-xs tabular-nums text-muted">
           {series.chapters.length} chapters
           {dateLabel ? ` · ${dateLabel}` : ""}
         </p>
@@ -272,14 +274,18 @@ export function SeriesCard({ series }: { series: Series }) {
           <li key={chapter.slug}>
             <Link
               href={hrefForPost(chapter)}
-              className="block rounded-xl border border-line/80 bg-canvas px-3 py-2 text-sm text-cream/80 transition hover:border-gold hover:text-gold"
+              className="flex items-baseline justify-between gap-3 rounded-xl border border-line/80 bg-canvas px-3 py-2.5 text-sm text-cream/80 transition hover:border-gold hover:text-gold"
             >
-              <span className="text-gold">{chapter.seriesOrder}.</span>{" "}
-              {shortChapterTitle(chapter.title)}
+              <span className="min-w-0">
+                <span className="text-gold">{chapter.seriesOrder}.</span>{" "}
+                {chapterLabel(chapter)}
+              </span>
               {chapter.date ? (
-                <span className="mt-1 block">
-                  <PostDate date={chapter.date} variant="inline" />
-                </span>
+                <PostDate
+                  date={chapter.date}
+                  variant="inline"
+                  className="shrink-0 text-[0.7rem]"
+                />
               ) : null}
             </Link>
           </li>
@@ -360,7 +366,7 @@ export function SeriesHub({
   return (
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-16 md:px-8">
       <Link
-        href={`/${series.kind}`}
+        href={`/${pathForKind(series.kind)}`}
         className="text-sm text-gold hover:underline"
       >
         ← All {kindLabel}
@@ -383,7 +389,7 @@ export function SeriesHub({
         </Link>
       ) : null}
 
-      <ol className="mt-14 space-y-4">
+      <ol className="mt-14 space-y-3">
         {series.chapters.map((chapter) => (
           <li key={chapter.slug}>
             <Link
@@ -393,18 +399,22 @@ export function SeriesHub({
               <span className="font-display text-3xl italic text-gold">
                 {String(chapter.seriesOrder).padStart(2, "0")}
               </span>
-              <div>
-                <h2 className="font-display text-2xl italic text-cream group-hover:text-gold">
-                  {chapter.title}
-                </h2>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h2 className="font-display text-2xl italic text-cream group-hover:text-gold">
+                    {chapter.title}
+                  </h2>
+                  {chapter.date ? (
+                    <PostDate
+                      date={chapter.date}
+                      variant="inline"
+                      className="text-xs"
+                    />
+                  ) : null}
+                </div>
                 <p className="mt-2 text-sm text-muted line-clamp-2">
                   {chapter.description}
                 </p>
-                {chapter.date ? (
-                  <div className="mt-3">
-                    <PostDate date={chapter.date} variant="compact" />
-                  </div>
-                ) : null}
               </div>
             </Link>
           </li>

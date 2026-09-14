@@ -127,69 +127,6 @@ export const stats = [
   { value: "11", label: "Papers on Scholar" },
 ] as const;
 
-/** Curated entry points on the Notes index; not a full tag CMS. */
-export const noteStarters = [
-  {
-    id: "start-here",
-    label: "Start here",
-    description: "A short path into NLP if you are new to the notes.",
-    slugs: [
-      "getting-started-with-nlp",
-      "nlp-vs-machine-learning",
-      "the-science-behind-nlp",
-      "limitations-and-challenges-of-nlp",
-      "dl-basics",
-    ],
-  },
-  {
-    id: "transformers",
-    label: "Transformers",
-    description: "Attention, BERT, and the models behind modern NLP.",
-    slugs: [
-      "attention-mechanisms-in-nlp",
-      "bert",
-      "bert-vs-roberta",
-      "sequence-to-sequence-learning",
-      "causal-vs-masked-language-modeling",
-    ],
-  },
-  {
-    id: "training",
-    label: "Training tricks",
-    description: "Fine-tuning, adapters, and making models fit on real hardware.",
-    slugs: [
-      "fine-tuning",
-      "lora",
-      "peft",
-      "quantization",
-      "gradient-accumulation",
-      "mixed-precision-vs-quantization",
-    ],
-  },
-  {
-    id: "production-ai",
-    label: "Production AI",
-    description: "Agents, evals, serving, safety, and the failure modes that show up after the demo.",
-    slugs: [
-      "tool-calling-agents",
-      "llm-evaluation",
-      "rag-failure-modes",
-      "structured-outputs",
-      "inference-serving",
-      "prompt-injection",
-      "dpo",
-      "speaker-embeddings",
-      "when-the-model-stops-being-the-bottleneck",
-      "false-positives-are-an-architecture-decision",
-      "evaluation-set-becomes-part-of-the-product",
-      "gpu-utilization-is-the-wrong-question",
-      "rag",
-      "function-calling",
-      "rlhf",
-    ],
-  },
-] as const;
-
 export const noteCategories = [
   { id: "all", label: "All" },
   { id: "foundations", label: "Foundations" },
@@ -364,6 +301,16 @@ export const seriesCopy: Record<
     blurb:
       "Five chapters on certainty, perception, and how much of what we call knowing actually stands when you look closely.",
     startLabel: "Start with Ring the bells",
+  },
+  "alexa-skills-with-python": {
+    blurb:
+      "A five-part path from Alexa concepts to a working Rock-Paper-Scissors skill, then APL, multilingual support, and monetization, all in Python.",
+    startLabel: "Start with the introduction",
+  },
+  "ai-system-design": {
+    blurb:
+      "A reference design for an assistant platform, followed from product guarantees through knowledge, durable execution, and load.",
+    startLabel: "Start with architecture",
   },
 };
 

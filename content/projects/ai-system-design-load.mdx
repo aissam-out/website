@@ -1,0 +1,109 @@
+---
+title: "Load, Queues, and Capacity"
+slug: ai-system-design-load
+date: 2026-03-24
+description: "Treat queues, capacity, and fallbacks as design choices so latency, overload, and release evaluation stay inspectable."
+series: "AI System Design"
+seriesOrder: 4
+shortTitle: Load
+featured: false
+tags: [AI System Design, Capacity, Operations]
+---
+
+The assistant works well with a few users. Then an ingestion backfill starts, several customers become active at once, and the experience deteriorates. Most requests still succeed, average model latency has moved only slightly, and the GPU dashboard shows high utilization. Employees nevertheless wait long enough to submit the same task again.
+
+The delay can be accumulating before inference, inside a saturated connection pool, behind a large request, or at an external API. More model capacity helps only some of those cases. Retries and duplicate submissions can amplify the others. At this point, the queue is part of the product experience whether the architecture diagram includes it or not.
+
+The previous articles established the platform's [boundaries](/projects/ai-system-design-requirements/), [knowledge layer](/projects/ai-system-design-knowledge/), and [durable execution](/projects/ai-system-design-execution/). This final article asks whether that system can deliver useful results within its operating constraints. All numerical examples below are illustrative calculations, not measurements from a deployed system or a hardware benchmark.
+
+## Describe the work behind a request
+
+The reference workload has ordinary busy-period traffic of two new runs per second and short peaks of ten. Eighty percent are knowledge questions and twenty percent are order investigations. For initial capacity planning, suppose a knowledge question makes one generation call and an investigation makes two. The weighted mean is 1.2 generation calls per run, giving 12 generation calls per second at peak.
+
+Assume each generation call averages 2,500 input tokens and 400 output tokens. Peak demand is then 30,000 input tokens per second and 4,800 output tokens per second. Embedding queries, reranking, and background ingestion are additional workloads. Investigations with variable agent loops would also change the call-count distribution, so their execution limits need to appear in the capacity model.
+
+These averages are a starting point. A small number of long contexts or long outputs can dominate memory occupancy and queueing. I would preserve the distributions of input size, output size, calls per run, tenant activity, and arrival bursts in the load test. A benchmark of identical short prompts cannot establish capacity for that mix.
+
+Little's Law provides a useful consistency check in a stable system: average work in flight equals arrival rate multiplied by average time in the system. At ten runs per second and a 20-second mean residence time, that is roughly 200 active runs. It does not tell me how many model calls run simultaneously, nor predict p95 latency. It also does not describe a backlog growing without bound during overload.
+
+## Establish where the latency goes
+
+For knowledge answers, part one set a p95 completion target of 12 seconds under the agreed workload. Investigations have a 30-second target to reach a proposal, excluding human approval. I would also track time to first useful output. A generic "working on it" event proves the connection is alive, but should not be counted as the first answer token.
+
+One illustrative knowledge request might spend 150 milliseconds on ingress and authorization, 450 milliseconds waiting for a worker, 700 milliseconds retrieving evidence, 500 milliseconds reranking, one second on model admission and prefill, and 6.8 seconds generating its response. Completion takes 9.6 seconds, with the first generated output around 2.8 seconds after submission.
+
+![A 9.6-second illustrative request is split into authorization, worker wait, retrieval, reranking, model admission and prefill, and generation.](/media/ai-system-design-load/01.png)
+
+*Figure 1. One example trace, not percentile measurements. Time to first output and completion expose different parts of the user experience.*
+
+I would instrument those boundaries rather than put one timer around the model SDK. For parallel operations, end-to-end latency follows the critical path; their durations should not all be added together. Component p95 values also do not sum into an end-to-end p95. The target has to be evaluated on actual complete requests with the relevant workload and failure behavior.
+
+The trace should carry run, tenant, assistant-version, index-generation, model-route, and tool-attempt identifiers. OpenTelemetry's trace model provides spans and parent-child relationships for following work across services. Queued work also needs propagated context or appropriate links so the trace survives asynchronous boundaries. [Source: OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/).
+
+I would record metadata and timing by default, with selective protected payload capture when diagnosis requires it. Observability that copies every sensitive prompt into a broadly accessible log index creates a new data system with its own access and retention problem.
+
+## Size inference against the service target
+
+For self-hosted inference, the model weights are only part of GPU memory use. Active sequences also require KV cache, alongside runtime buffers and other allocations. Longer contexts and more concurrent sequences change the memory budget. vLLM's paged-attention design documents block-based KV-cache handling; the relevant operational lesson here is that memory management and workload shape influence the concurrency a serving engine can sustain. [Source: vLLM design documentation](https://docs.vllm.ai/en/latest/design/paged_attention/).
+
+Prefill and decoding have different execution characteristics, so a single tokens-per-second figure can hide the limiting phase. I would benchmark the chosen model, precision, hardware, serving settings, and request mix together, measuring both first-token and completion latency. A high utilization reading indicates activity over the sampling interval; it does not establish useful throughput or how close the system is to its attainable performance for this workload.
+
+Suppose, purely for calculation, that one serving replica has been measured at 1,200 output tokens per second for the representative input/output mix while meeting its assigned latency target. A replica could contain multiple GPUs. Applying a provisional 70% planning factor gives 840 output tokens per second of planned demand per replica. The 4,800-token peak requires six such replicas, rounded up. Seven would retain six after one replica fails.
+
+![Illustrative capacity arithmetic converts peak calls and tokens into six planned replicas plus one for a single-replica failure.](/media/ai-system-design-load/02.png)
+
+*Figure 2. A worked estimate with an assumed benchmark. The same input mix and latency constraint must hold before the replica count has practical meaning.*
+
+The arithmetic is deliberately easy to challenge. The 70% factor is an assumption, not a universal optimum, and the example benchmark is hypothetical. Output throughput alone is insufficient if prefill saturates first. The final count needs a mixed-workload test at the planned concurrency, plus failure testing and external-dependency limits. Buying seven replicas from this paragraph would confuse a sizing method with a sizing result.
+
+For a managed API, the same demand translates into permitted request rate, input and output token quotas, model availability, and budget. The platform still needs admission control. Moving inference outside the deployment changes which capacity controls it owns; it does not eliminate overload.
+
+## Give unlike workloads separate budgets
+
+Interactive generation, background embedding, and document parsing have different latency and resource requirements. I would give them separate queues and worker pools, with explicit limits on shared dependencies. Two queues feeding the same unrestricted GPU service do not provide isolation by themselves.
+
+Interactive inference gets a reserved capacity budget. Background work uses separately allocated capacity or a strictly controlled share, with large backfill requests divided into bounded units. If a serving engine cannot prevent background batches from causing unacceptable interference, dedicated capacity is the clearer choice. The same reasoning applies to database connections and object-store bandwidth.
+
+![Interactive and ingestion queues use separate worker pools and bounded resource allocations, with tenant admission before the interactive path.](/media/ai-system-design-load/03.png)
+
+*Figure 3. Queue separation must be accompanied by limits at shared bottlenecks. Otherwise the workloads meet again at the same saturated resource.*
+
+Tenant fairness also requires more than a global concurrency cap. One customer submitting long investigations can occupy a disproportionate share of workers and model memory. I would begin with per-tenant active-run limits, call budgets, and weighted scheduling, then refine the accounting using observed token demand and task cost. Equal request counts are not necessarily equal resource use.
+
+Database connection pools need their own bounds. Scaling workers from ten to a hundred may create ten times as many connections without increasing database capacity. When the bottleneck is an external order API, additional workers may simply increase waiting and retries. Autoscaling should react to a diagnosed capacity shortage, using queue age and resource saturation together rather than queue length alone.
+
+## Define what overload means before it happens
+
+A queue absorbs a burst by spending time. If accepted work cannot finish within its deadline, a larger queue can make the service appear available while guaranteeing an unacceptable result. Admission should consider remaining deadline, estimated work, tenant quota, and downstream health. Interactive work may need a retryable rejection; intentionally asynchronous work can be accepted with a different completion expectation.
+
+As a simple burst calculation, suppose arrivals reach 20 runs per second for 30 seconds while the system can complete ten per second. Approximately 300 runs accumulate, ignoring variability and warm-up effects. If arrivals then fall to two per second, the net drain is eight per second, requiring roughly 37.5 seconds to clear the backlog. A queue can preserve those tasks, but it cannot preserve a 12-second response target for all of them.
+
+Retries must fit the same resource budget. Backoff and jitter spread repeated attempts, while finite attempt counts and deadlines prevent indefinite accumulation. Retry decisions still follow the operation semantics from part three. An unknown refund outcome goes to reconciliation; it does not become an ordinary retry merely because the service is busy.
+
+I would reserve some operational capacity for reconciliation and control actions. Allowing a large wave of new questions to starve already-submitted business operations makes recovery harder precisely when it matters most. During overload, pausing ingestion or declining new expensive investigations may preserve more useful service than uniformly slowing every task.
+
+## Make fallbacks preserve the task's meaning
+
+If the order API is unavailable, the assistant can discuss general policy while stating that it cannot verify the order. It cannot claim to have completed the investigation. If authorization is unavailable, protected retrieval stops. If a model route fails, a substitute is permitted only when its data policy, tool behavior, and evaluated task quality satisfy the route's requirements.
+
+Caching can improve this situation, but only within correctness boundaries. Query-embedding caches need the embedding version and appropriate tenant separation. Retrieval caches depend on corpus generation and authorization context. Answer caches also depend on the question, evidence freshness, and any live business state. Semantic similarity alone cannot establish that two order investigations have the same answer.
+
+I would introduce semantic answer caching only for a constrained class of stable questions where equivalence and access can be tested. The platform still records when evidence was obtained and rechecks permission before exposing cached sensitive content. A cache hit is a performance event, not a waiver of the data contract.
+
+## Release a system version and evaluate the outcome
+
+A deployment can change code, prompt templates, retrieval settings, index generation, model routing, and tool contracts. I would record their identifiers together for each run and expose them in comparison dashboards. Otherwise a quality regression gets attributed to the most visible change while a simultaneous index migration goes unnoticed.
+
+Offline evaluation should cover representative tasks, permission boundaries, incomplete evidence, tool validation, and integration failures. A staged release then compares task outcomes, latency, cost, and failure modes on a limited population. Shadow execution is useful for reads and proposals; production writes must be disabled or redirected to a sandbox to avoid duplicating business actions.
+
+Rollback needs compatibility with outstanding runs and data state. Reverting the application does not undo a refund, and pointing retrieval at an old index does not make its contents current. Each change should state its rollback mechanism and the conditions under which that mechanism remains safe.
+
+The cost metric I care about is total cost divided by successfully completed tasks, with an explicit definition of success for each task class. The numerator includes failed attempts, retries, retrieval, background processing, and allocated infrastructure costs. User abandonment and unresolved cases should remain visible rather than vanish from a flattering average. Human handling effort is also worth measuring where it can be attributed reliably.
+
+## Change the traffic requirement
+
+Suppose traffic grows tenfold. I would first inspect which resources scale with accepted runs, tokens, documents, and external operations. The API might scale horizontally while model quotas, database writes, or a customer's order endpoint remain fixed. Increased tenant count may also change isolation needs before it changes total throughput.
+
+A credible expansion plan follows those bottlenecks: provision or negotiate inference capacity, bound per-tenant demand, partition data or workers where measurement justifies it, and preserve recovery capacity. Multi-region deployment enters only if geography, availability, or residency requires it; it introduces replication and action-ownership questions that additional regional workers alone do not solve.
+
+The architecture is ready for production when its behavior under pressure is as deliberate as its behavior in a demonstration. Some work will be rejected, some will wait, and some will need a person to resolve an uncertain outcome. Designing those paths is how the platform keeps the promises established before the first model was chosen.

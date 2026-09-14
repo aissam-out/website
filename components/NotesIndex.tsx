@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PostDate } from "@/components/PostDate";
 import type { Post } from "@/lib/content";
-import { noteCategories, noteStarters } from "@/lib/site";
+import { noteCategories } from "@/lib/site";
 
 type NoteCard = Omit<Post, "content">;
 
@@ -25,90 +25,42 @@ function matchesCategory(post: NoteCard, categoryId: string) {
 
 export function NotesIndex({ posts }: { posts: NoteCard[] }) {
   const [category, setCategory] = useState<string>("all");
-  const [starterId, setStarterId] = useState<string | null>(null);
 
-  const starter = noteStarters.find((item) => item.id === starterId);
-
-  const visible = useMemo(() => {
-    if (starter) {
-      const bySlug = new Map(posts.map((post) => [post.slug, post]));
-      return starter.slugs
-        .map((slug) => bySlug.get(slug))
-        .filter((post): post is NoteCard => Boolean(post));
-    }
-    return posts.filter((post) => matchesCategory(post, category));
-  }, [posts, category, starter]);
+  const visible = useMemo(
+    () => posts.filter((post) => matchesCategory(post, category)),
+    [posts, category],
+  );
 
   return (
     <div>
-      <div className="mt-10 space-y-6">
-        <div>
-          <p className="text-[0.65rem] uppercase tracking-[0.18em] text-muted">
-            Starter packs
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {noteStarters.map((pack) => {
-              const active = starterId === pack.id;
-              return (
-                <button
-                  key={pack.id}
-                  type="button"
-                  onClick={() => {
-                    setStarterId(active ? null : pack.id);
-                    if (!active) setCategory("all");
-                  }}
-                  aria-pressed={active}
-                  className={`rounded-full px-4 py-2 text-sm transition ${
-                    active
-                      ? "bg-gold text-canvas"
-                      : "border border-line text-cream/80 hover:border-gold hover:text-gold"
-                  }`}
-                >
-                  {pack.label}
-                </button>
-              );
-            })}
-          </div>
-          {starter ? (
-            <p className="mt-3 max-w-2xl text-sm text-muted">
-              {starter.description}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <p className="text-[0.65rem] uppercase tracking-[0.18em] text-muted">
-            Categories
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {noteCategories.map((item) => {
-              const active = !starterId && category === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setStarterId(null);
-                    setCategory(item.id);
-                  }}
-                  aria-pressed={active}
-                  className={`rounded-full px-4 py-2 text-sm transition ${
-                    active
-                      ? "bg-gold text-canvas"
-                      : "border border-line text-cream/80 hover:border-gold hover:text-gold"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+      <div className="mt-10">
+        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-muted">
+          Categories
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {noteCategories.map((item) => {
+            const active = category === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setCategory(item.id)}
+                aria-pressed={active}
+                className={`rounded-full px-4 py-2 text-sm transition ${
+                  active
+                    ? "bg-gold text-canvas"
+                    : "border border-line text-cream/80 hover:border-gold hover:text-gold"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <p className="mt-8 text-sm text-muted">
         {visible.length} {visible.length === 1 ? "note" : "notes"}
-        {starter ? ` in ${starter.label}` : null}
       </p>
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

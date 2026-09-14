@@ -12,11 +12,16 @@ import {
 } from "@/components/charts";
 
 const components = {
-  a: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => (
+  a: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a
       {...props}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       className="text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold"
-    />
+    >
+      {children}
+    </a>
   ),
   img: (props: ImgHTMLAttributes<HTMLImageElement>) => {
     const { alt = "", src, ...rest } = props;

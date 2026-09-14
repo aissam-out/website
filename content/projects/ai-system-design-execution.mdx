@@ -1,0 +1,109 @@
+---
+title: "The Execution Layer"
+slug: ai-system-design-execution
+date: 2026-03-17
+description: "Design durable execution so tool timeouts, approvals, and retries leave a clear account of what did and did not happen."
+series: "AI System Design"
+seriesOrder: 3
+shortTitle: Execution
+featured: false
+tags: [AI System Design, Agents, Reliability]
+---
+
+The assistant prepares a refund, an employee approves it, and a worker calls the order system. The request times out. The external service might have rejected the request, accepted it, or completed the refund just before the connection failed. The worker has received the same symptom in three different situations.
+
+A retry can be sensible or harmful depending on which situation occurred. Asking the model to decide does not recover the missing fact. The execution layer needs a representation of uncertainty, a way to reconcile with the external system, and rules governing which operations can safely be attempted again.
+
+This article develops the execution layer of the assistant platform introduced in [part one](/projects/ai-system-design-requirements/). Its first workflow investigates a delayed order, consults authorized policy evidence, and proposes a remedy for approval. The knowledge layer from [part two](/projects/ai-system-design-knowledge/) provides evidence with provenance. Here, I will decide how the platform moves work forward without losing track of what it has already done.
+
+## Choose how much control the task actually needs
+
+A known sequence of order lookup, policy retrieval, analysis, validation, and approval is a workflow. The analysis step can use a model without letting that model choose every transition. I would implement the first version this way because the business process already provides useful structure.
+
+Some investigations will eventually need a variable sequence: check a shipment, inspect a warehouse exception, then request another piece of evidence. A bounded agent loop can handle that stage. It receives a permitted tool set and may choose its next investigative call, while the surrounding workflow retains responsibility for approval and external writes.
+
+The agent harness is the software executing that loop. It assembles context, calls the model, interprets proposed tool calls, validates them, dispatches allowed work, records results, and decides whether another step is permitted. In a production system, those decisions are connected to durable state, deadlines, quotas, and authorization. A loop running only in process memory cannot by itself meet the recovery requirements of this platform.
+
+I would add multiple agents only after identifying work that benefits from separate contexts or independently evaluated roles. Two labels such as "planner" and "executor" do not create an authorization boundary. If both inherit the same credentials and can call the same tools, the separation is organizational rather than protective.
+
+## Give every run a durable contract
+
+The API accepts a request and creates a run containing tenant identity, initiating principal, pinned assistant version, input references, execution deadline, and resource budgets. A client request key allows a retried submission to recover the same logical run. Reusing the key with different input should produce a conflict rather than silently return an unrelated result.
+
+The run owns steps. Each step records its operation, input reference or fingerprint, state, attempts, output reference, and dependency information. The platform persists the result of a completed model call when retention permits, so crash recovery need not regenerate a potentially different proposal. Repeating a model request with the same prompt does not establish deterministic replay.
+
+An event history supports progress streaming and investigation. A current-state record supports efficient scheduling and guarded transitions. Updating state and recording the corresponding event should occur in the same transaction. Otherwise the interface can report a transition that the scheduler never committed, or the scheduler can advance without producing an event the client can recover.
+
+![Durable execution connects the API, run store, dispatch queue, workers, model and retrieval interfaces, and a guarded action adapter.](/media/ai-system-design-execution/01.png)
+
+*Figure 1. The runtime owns progress and recovery. The model proposes work inside that runtime; it does not own the durable execution record.*
+
+The run transaction also writes an outbox entry. A dispatcher publishes that entry to the queue and marks its progress. Since publication and acknowledgment can fail independently, delivery is assumed to be at least once. Queue messages identify durable work rather than constitute the only copy of that work.
+
+Workers claim steps through a conditional state transition with an ownership lease. A generation number can prevent an expired worker from committing results after another worker has taken over. That protection applies to the platform's own database. It cannot prevent an old worker from affecting an external service unless the receiving boundary also supports an appropriate guard. External actions need their own idempotency and reconciliation strategy.
+
+## Represent outcomes that require different next actions
+
+A small state vocabulary is easier to operate than an expanding list of framework exceptions. At run level, I need queued, running, awaiting approval, awaiting reconciliation, succeeded, failed, and cancelled. Step records retain the details needed to determine the next transition.
+
+Awaiting approval means there is a complete proposal and a human decision is required. Awaiting reconciliation means an external outcome is unknown. Neither state should consume an execution worker while it waits. A scheduler resumes the run when a durable event or a reconciliation check makes progress possible.
+
+![Run states branch from execution into approval or reconciliation before reaching a terminal result.](/media/ai-system-design-execution/02.png)
+
+*Figure 2. Unknown external outcomes have their own state. Treating them as ordinary failures would encourage unsafe retries.*
+
+A deadline also needs interpretation. The budget for active investigation can expire while an approval has a separate, longer validity window. Once approval arrives, the execution window for submitting the action can be short again. Keeping one worker asleep for a day waiting for a button press would confuse human waiting time with compute consumption.
+
+Cancellation stops unscheduled work and requests cooperative termination of ongoing work. It cannot promise to undo an operation already submitted to another system. If cancellation races with a refund request, the platform still has to establish the refund's outcome. It can record the cancellation request immediately while withholding a misleading "cancelled with no effect" result.
+
+## Make approval refer to a particular operation
+
+An approval should reference a proposal identifier bound to the tool, target, normalized arguments, and relevant business-state version. It records who approved, when, and until when the decision is valid. "Approve the assistant" is too broad a grant when the next model output could change the amount or the recipient.
+
+Before dispatch, the application checks current permission and confirms that the business preconditions still hold. The order may have been refunded by another employee during the approval pause. Where the external API supports a conditional write against an order version, the action can carry that condition. A separate read followed by an unconditional write leaves a race that the platform must account for.
+
+If material parameters or preconditions have changed, the runtime creates a new proposal or rejects the action. It should not edit the approved payload and preserve the old approval. The original assistant version remains attached to the run, while current security policy can still prevent execution.
+
+The model does not receive a service credential and decide how to use it. It emits a structured request. A tool adapter checks schema, tenant, principal, capability, target, and business constraints, then obtains the appropriately scoped credential. Untrusted document text may influence a proposed call; application policy still determines whether that call can occur.
+
+MCP can standardize tool discovery and invocation, but it does not remove those application responsibilities. Its tool specification includes schemas and interaction guidance; the platform still has to decide what a particular caller may do and how the resulting operation is recovered. [Source: MCP tool specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
+
+## Retry according to operation semantics
+
+Read-only lookups can usually tolerate bounded retries, though the returned state may change and the call may still incur cost. A model request is often retryable before its result is consumed, but can produce different output and additional billing. An external write requires a more specific contract.
+
+For each logical action, I would create and persist an action identifier before dispatch. If the receiving API supports idempotency, the adapter uses that stable identifier on every retry of that action. Creating a new key per attempt defeats the protection. The adapter must also understand the provider's retention window and behavior when a key is reused with changed arguments. AWS's discussion of idempotent APIs explains why an explicit request identifier is preferable to assuming identical parameters always mean identical intent. [Source: AWS Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/).
+
+After the refund timeout, a provider with an idempotency and status-lookup contract lets the adapter reconcile by action key or safely repeat within that contract. Once the outcome is established, the worker records the external operation identifier and advances the run. If the provider has accepted the request but is still processing it, the action remains pending until the relevant final outcome is known.
+
+![After a timed-out refund submission, an action enters reconciliation and queries by its stable key before recording completion.](/media/ai-system-design-execution/03.png)
+
+*Figure 3. A timeout changes what the platform knows. Reconciliation establishes the external outcome before the run claims completion.*
+
+If the API has no idempotency support, a local action table cannot close the gap between the remote commit and a lost response. A trustworthy query by a unique business reference might still support reconciliation. If it cannot, I would suspend the action for manual resolution instead of blindly retrying. This is a limitation of the integration contract that needs to be visible in the product.
+
+Compensation is also domain-specific. Issuing a second operation to reverse the first can itself fail and may require separate approval. A refund followed by a compensating charge is not equivalent to a refund that never happened. The execution record should preserve both operations and their consequences.
+
+## Bound the work an investigation can create
+
+The runtime enforces a maximum number of model turns, tool calls, concurrent branches, and tokens, together with a wall-clock deadline. The remaining budget travels with each step. A model-generated plan cannot allocate more resources simply by proposing additional subagents.
+
+Independent read calls may run concurrently, for example retrieving shipment status and policy evidence. The workflow must define whether both are required and how partial results affect its answer. If shipment status is missing, the assistant may explain policy while explicitly declining to diagnose the delay. It must not convert a failed lookup into invented evidence.
+
+I would avoid nested retry policies where the SDK, adapter, worker, and workflow all retry the same failure independently. Attempts multiply quickly and can overload the dependency during an incident. One layer should own the end-to-end retry budget, with bounded backoff and jitter for permitted retries and enough remaining time to complete useful work.
+
+Long-running execution is exposed through run state and events rather than the lifetime of one HTTP connection. The client may disconnect and resume its progress stream. An event retention policy determines how far it can replay; after that window, it can still obtain the current state and durable result. Credentials and unnecessary source content should remain out of ordinary progress events.
+
+## Upgrade the runtime without changing unfinished work silently
+
+Pinning the assistant configuration is only one part of versioning. Runs may depend on a workflow definition, tool schema, prompt template, and model route. A deployment needs either backward-compatible execution of outstanding versions or an explicit migration and cancellation policy. An old paused approval cannot safely resume against a new tool whose arguments have changed meaning.
+
+For model endpoints that cannot pin an immutable model version, I would record the identifier and available provider metadata, then acknowledge that exact replay is unavailable. The system can still preserve its own inputs, decisions, and external outcomes within retention limits. Auditability should not be confused with bit-for-bit reproducibility.
+
+## Change the integration contract
+
+Suppose a new order provider offers only a non-idempotent refund endpoint and no reliable operation lookup. Most of the assistant platform can remain unchanged, but the action adapter cannot provide the previous automatic recovery behavior. The integration might support investigations and approval preparation while requiring a person to perform the final refund through the provider's interface.
+
+That is a defensible product boundary. Hiding the difference behind the same tool name would make the runtime appear more uniform by making its guarantees less reliable. Tool capability metadata should describe recovery properties as well as input parameters.
+
+The execution layer has done its job when the platform can explain what was requested, what was authorized, what was attempted, and what is known to have happened. Once those facts survive worker failures and interrupted connections, a more capable model can improve the investigation without becoming responsible for the transaction's integrity.

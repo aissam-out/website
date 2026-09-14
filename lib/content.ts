@@ -25,6 +25,8 @@ export type Post = {
   featured?: boolean;
   series?: string;
   seriesOrder?: number;
+  /** Short label for chapter chips and series cards. */
+  shortTitle?: string;
   /** Cross-room bridges shown in the post header. */
   related?: RelatedLink[];
   kind: ContentKind;
@@ -112,6 +114,7 @@ function loadDir(kind: ContentKind): Post[] {
         series: data.series ? String(data.series) : undefined,
         seriesOrder:
           typeof data.seriesOrder === "number" ? data.seriesOrder : undefined,
+        shortTitle: data.shortTitle ? String(data.shortTitle) : undefined,
         related: parseRelated(data.related),
         kind,
       } satisfies Post;

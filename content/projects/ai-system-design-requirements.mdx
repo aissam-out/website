@@ -1,0 +1,137 @@
+---
+title: "From Request to Architecture"
+slug: ai-system-design-requirements
+date: 2026-03-03
+description: "Start AI system design from the guarantees a product must preserve: access, actions, evidence, and survival of interrupted work."
+series: "AI System Design"
+seriesOrder: 1
+shortTitle: Architecture
+featured: true
+tags: [AI System Design, Architecture, Platforms]
+---
+
+"Let customers create assistants that work with their documents and tools." It is a reasonable product request, and a surprisingly incomplete description of a system. An assistant that explains a refund policy and an assistant that issues a refund might share a chat interface, a model, and much of their code. The consequences of getting them wrong are different enough to change the architecture.
+
+This is where I would start a design discussion. Before choosing the model or orchestration framework, I want to know what a customer will depend on the application to preserve: whose information it can access, which actions it can take, what happens when an answer lacks evidence, and how work survives an interrupted request. Those commitments determine where state lives and where decisions need enforcement.
+
+Across this series, I will design a platform where organizations configure assistants to consult internal knowledge and interact with business systems. This is a reference design, with illustrative workloads rather than production benchmarks. Following one system through its data, execution, and operational problems makes the consequences of each decision easier to inspect.
+
+## Give the product a bounded first job
+
+Consider a support employee asking, "Why is order 4817 delayed, and what can we offer the customer?" The assistant needs current order information from an operational API and policy information from internal documents. It should explain the situation, identify an allowed remedy, and prepare a proposed action. An authorized employee must approve any change before the platform submits it.
+
+That is a useful first release. Customer administrators can choose knowledge sources, enable a reviewed set of tools, and configure instructions. They cannot upload arbitrary server code or grant an assistant privileges they do not possess. Autonomous refunds, unrestricted browsing, and arbitrary customer-installed integrations would each expand the threat model and execution requirements; they remain outside this design.
+
+I would begin with a fixed investigation workflow containing bounded model steps. The order lookup, policy retrieval, proposal validation, and approval stages are already known. If later evaluation shows that investigations require genuinely variable sequences of tools, a bounded agent loop can occupy the investigation stage. The platform does not need to delegate control over the entire transaction to accommodate that variation.
+
+The boundaries matter to the user experience too. "I could not verify the current order status" is a legitimate result. A confident explanation assembled from an old document is not a successful investigation merely because it arrived quickly.
+
+## Put numbers and consequences beside the requirements
+
+I would use the following assumptions to make the initial architecture concrete. These are planning inputs to validate with workload tests, not claims about a particular model's performance.
+
+| Dimension | Initial design assumption |
+| --- | --- |
+| Customers | 100 organizations in one deployment region |
+| Users | 10,000 registered users; activity is concentrated in working hours |
+| Traffic | 2 new runs/second during ordinary busy periods; 10/second during short peaks |
+| Knowledge | 1 million documents across customers; 1% change on a typical day |
+| Task mix | 80% knowledge questions; 20% order investigations |
+| Knowledge-answer latency | p95 complete response within 12 seconds for the agreed test workload |
+| Investigation latency | p95 proposal ready within 30 seconds, excluding human approval |
+| Freshness | Ordinary document updates searchable within 15 minutes of source availability |
+| Availability | Initial 99.9% monthly objective for accepting and retrieving runs; task completion measured separately |
+
+The registered-user count is useful for product planning. Arrival rate, task shape, and burst duration are more useful for capacity. At 10 runs per second, a 30-second average residence time would imply about 300 runs in flight in a stable interval. Many may be waiting on network calls; this does not imply 300 simultaneous model generations. The calculation tells me to separate durable run state from a particular web request or worker process.
+
+The document count has similar limitations. A million one-page memos and a million scanned manuals imply very different parsing, storage, and embedding costs. Before sizing ingestion, I would sample page counts, file sizes, languages, and extracted token lengths. The first architecture needs a place for that work to run asynchronously, even while its exact capacity remains unknown.
+
+Some requirements should be stated as invariants rather than percentages. Retrieval must enforce tenant and user access before evidence reaches the model. Every external write must reference a specific authorized proposal. An unknown external outcome must remain distinguishable from a confirmed failure. These constraints need explicit enforcement points.
+
+| Commitment | Enforcement in this design |
+| --- | --- |
+| A user sees only authorized evidence | Server-derived identity and permissions in the retrieval path |
+| Customer instructions cannot grant permissions | Application authorization before tool dispatch |
+| Published configuration stays identifiable | Immutable assistant versions referenced by each run |
+| Approval applies to one exact change | Proposal record binding tool, target, arguments, and expiry |
+| A disconnected browser does not erase accepted work | Durable run and event records |
+| A model failure cannot become a silent success | Explicit run outcomes and dependency error handling |
+
+## Draw the boundary around what the platform owns
+
+The platform owns assistant configuration, orchestration, indexed knowledge, proposals, approvals, and the history of its own executions. The identity provider owns authentication. Source repositories own documents and their source permissions. The order system owns order state and the final result of a submitted business operation.
+
+Those are separate authorities. Copying an order response into a conversation does not make it current indefinitely. Storing a document in a search index does not give the platform permission to show it to everyone. Receiving a timeout from an external API does not establish that an operation failed.
+
+![Platform boundary showing employees, identity, source repositories, model endpoint, and business systems around the assistant platform.](/media/ai-system-design-requirements/01.png)
+
+*Figure 1. The platform coordinates several authorities. Trust, ownership, and availability do not automatically transfer across an integration.*
+
+For the initial deployment, I would assume a model endpoint approved for the relevant data classification and region. A customer that prohibits external processing needs an inference deployment inside the permitted environment. A model gateway provides a useful policy and instrumentation boundary, but an interchangeable HTTP interface does not make different models equivalent in quality, latency, or tool behavior. Each permitted route needs its own evaluation.
+
+## Separate configuration from execution
+
+Customer administrators operate a control plane: they connect sources, configure assistants, select allowed tools, and publish versions. Employees use the execution plane: they submit tasks and obtain results. Separating management from tenant workloads is an established multitenant design pattern; Microsoft's architecture guidance describes the distinction and its operational implications. [Source: Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes).
+
+In this design, publishing an assistant validates its source references, tool schemas, model policy, and limits, then creates an immutable version. A run pins that version when it begins. An administrator editing a prompt halfway through an investigation should not silently change the remaining steps of that investigation.
+
+Permissions need different treatment. A pinned version can preserve the intended workflow while current authorization still restricts it. If a user loses permission to issue refunds, an old assistant version must not preserve that ability. I would pin behavioral configuration and recheck current authorization at sensitive reads and before action dispatch. Emergency suspension must also override published versions.
+
+Configuration can be cached by version. Security decisions need an explicit freshness policy. If the platform cannot establish authorization, it refuses the protected operation. This distinction allows some execution to continue during a configuration-editor outage without quietly accepting stale revocations.
+
+![Control plane publishes immutable assistant versions consumed by execution, while current authorization is checked independently.](/media/ai-system-design-requirements/02.png)
+
+*Figure 2. Behavioral configuration is pinned to a run. Current access policy can still narrow what that run may do.*
+
+## Model the state before splitting the services
+
+I would start with a relational database for transactional application state. The important relationships are small enough to describe before choosing an orchestration library.
+
+| Record | Responsibility |
+| --- | --- |
+| Tenant | Deployment placement, policy, quotas, and lifecycle state |
+| Assistant version | Published instructions, source bindings, tool contracts, and execution limits |
+| Knowledge source | Source identity, synchronization state, and access metadata |
+| Conversation | User-visible interaction history with its own access and retention rules |
+| Run | One execution, its pinned version, principal, state, deadline, and outcome |
+| Step | One attemptable unit of work and its persisted result |
+| Action proposal | Exact intended external operation and supporting evidence references |
+| Approval | Approver identity, proposal reference, decision, and expiry |
+
+A conversation and a run are different objects. One conversation can contain multiple runs; one run can outlive the browser connection that created it. A message history is also a poor substitute for execution state: recovering work should not require asking a model to infer which side effects already happened from a transcript.
+
+Every tenant-owned record carries tenant identity, and relationships must preserve it. I would use tenant-aware access methods and database constraints where practical. PostgreSQL row-level security can add defense in depth, but its role configuration matters: owners and privileged roles can bypass ordinary policies. The application must operate with deliberately restricted roles and tested policy behavior. [Source: PostgreSQL row security documentation](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
+
+Raw documents belong in object storage. Search indexes contain derived retrieval data. Secrets belong behind a credential service or secret manager, referenced by identifier rather than embedded in assistant configurations. Traces should carry useful identifiers and timing without copying every document and credential into a logging system.
+
+## Follow one request all the way through
+
+The client submits `POST /runs` with an assistant identifier, input, and a client request key. The API authenticates the principal, verifies tenant membership and assistant access, and resolves the published version server-side. It checks admission limits before accepting durable work. A client-supplied tenant identifier is a routing hint at most; it cannot establish authority.
+
+The API creates the run and a dispatch intent in the same database transaction. A dispatcher delivers that intent to a queue. This avoids the gap where a database commit succeeds but the process dies before sending the queue message. Delivery may occur more than once, so workers still need duplicate-safe claiming and state transitions.
+
+The response contains the run identifier. The browser can stream progress and later reconnect using the last event position. A durable final result remains available through a run endpoint even if the stream was interrupted. This costs more machinery than returning a model response directly, but investigations and approval pauses already require execution to survive a connection.
+
+![Run acceptance, worker execution, evidence lookup, model proposal, and approval are connected through durable state.](/media/ai-system-design-requirements/03.png)
+
+*Figure 3. Accepting a run establishes durable work. Evidence gathering and proposal generation happen before any approved external write.*
+
+For order 4817, a worker obtains the allowed order snapshot and policy evidence. The model prepares an explanation and a structured proposal. The application validates the proposal against the tool contract and business rules, records it, and exposes it for approval. Any later write passes through another authorization check. Detailed retry and recovery behavior belongs in part three, but the state needed for it already shapes this architecture.
+
+## Deploy the parts that have different operational needs
+
+My starting deployment would use one codebase with clearly owned modules, an administrative API process with restricted credentials, a tenant API, execution workers, and ingestion workers. These components can share selected infrastructure initially, but administrative privileges should not be available to ordinary execution workers. A small managed queue, relational database, object store, and suitable search backend complete the core.
+
+Ingestion deserves separate worker capacity immediately because parsing and embedding bursts can otherwise impair interactive requests. Execution workers need independent concurrency controls because they wait on external dependencies. Retrieval can begin as a module used by those workers; a separate network service becomes useful when independent scaling, ownership, or access boundaries justify it.
+
+Shared infrastructure is a reasonable initial choice for the assumed customer count, provided isolation is enforced throughout. A dedicated deployment becomes appropriate when a tenant requires private networking, residency, stronger resource separation, or independently managed capacity. I would store deployment placement behind a tenant-routing abstraction early, while postponing a fully automated fleet-management system until the business requires it.
+
+This design is regional. It does not yet promise seamless survival of a regional outage. Backups, tested restoration, and a documented recovery objective are necessary; cross-region operation needs additional decisions about data replication, permitted locations, and outstanding external actions. Calling the architecture highly available without stating its failure boundary would conceal those decisions.
+
+## Change one requirement and inspect what moves
+
+Suppose a new customer requires its documents and inference to remain inside a private network. The customer needs a local data and execution deployment: source connectors, storage, retrieval, workers, and inference. The shared management service may distribute approved configuration only if the customer's policy permits it. Run contents and traces cannot quietly travel back to a central dashboard.
+
+The original separation helps, but it does not make the change free. Deployment upgrades, credentials, outbound connectivity, observability, and support procedures all need a private-environment path. This is why the boundary was worth drawing before choosing the model.
+
+The first architecture is complete when I can trace each important promise to a mechanism and each accepted task to an accountable outcome. There will still be uncertain estimates and decisions to revisit. The useful design leaves those uncertainties visible, so the next measurement changes a known part of the system instead of surprising the entire product.
