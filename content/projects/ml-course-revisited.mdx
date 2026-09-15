@@ -1,0 +1,141 @@
+---
+title: "What I Would Teach Differently About Machine Learning Today"
+slug: "ml-course-revisited"
+date: 2026-09-14
+description: "I reopened an ML/DL course I designed and taught at EMSI. Most of the mathematics survived. My idea of where the hard engineering lives changed considerably."
+tags: [Machine Learning, Deep Learning, AI Systems, Retrospective]
+featured: true
+related:
+  - href: /projects/h100-batch-optimization
+    label: Getting more work out of one H100
+  - href: /notes/when-the-model-stops-being-the-bottleneck
+    label: When the model stops being the bottleneck
+---
+
+> Revisiting an 11-session ML/DL course I taught at EMSI after several years of building AI systems.
+
+A few years ago, I designed and taught an eleven-session machine learning and deep learning course at EMSI. It began with data preparation and classical machine learning, moved through neural networks, optimization, CNNs and RNNs, and ended with attention, transformers, RAG, fine-tuning and function calling. I recently reopened the original slides and notebooks, expecting mostly to find material that had aged. Instead, I found a fairly accurate record of how I used to organize the field in my head.
+
+Most of the mathematics survived. Gradient descent still descends gradients. Precision and recall have not gone anywhere. Convolutions still encode locality and parameter sharing. Attention still deserves to be understood rather than treated as an API detail. What changed much more was the relative importance I assign to these things. The course placed the model near the center of the story. Years of building AI systems gradually moved it away from there.
+
+That made revisiting the course more interesting than simply publishing the slides. I wanted to look at what I would keep, what I would correct, what I would spend less time on, and which topics that occupied a few slides then would deserve entire sessions now.
+
+<MlCoursePath />
+
+## The part that aged best was the decision to begin before the model
+
+The first substantial technical session was about data. We covered incomplete, noisy and inconsistent datasets, then cleaning, integration, transformations, scaling, encoding, dimensionality reduction and class imbalance. The practical work used NumPy and Pandas before moving into model training. I would still begin there, although I would teach the subject differently.
+
+The original material treated preprocessing mostly as a sequence that converts an inconvenient dataset into something suitable for a model. That is useful when learning the mechanics, but it suggests a boundary that is much cleaner than the one encountered in actual systems. Data quality does not stop once `fit()` begins. Sources change, schemas evolve, labels contain historical assumptions, distributions drift, and features that were perfectly legitimate during an offline experiment can turn out to be unavailable at inference time. Leakage is particularly good at producing models that look excellent until someone asks where a feature came from and when it became available.
+
+If I taught this part now, I would add provenance, dataset versioning, temporal leakage, distribution shift, validation at ingestion, and the relationship between training data and production traffic. I would also make students investigate where the dataset came from before allowing them to optimize anything on top of it. Preparing data for a model is important. Understanding whether the data deserves to be trusted is more important.
+
+## I would make classical ML feel more important, not less
+
+The next sessions covered supervised, unsupervised and reinforcement learning, train/validation/test splits, regression and classification metrics, followed by linear and logistic regression, KNN, SVMs, decision trees, Random Forest and boosting. At the time, this naturally felt like the section that came before deep learning. Today I would be careful not to present it as a staircase whose purpose is simply to reach neural networks.
+
+Classical models are useful partly because they are cheap experiments. A logistic regression or tree-based baseline can expose a surprising amount about a problem before anyone reaches for a larger model. If a simple classifier already performs suspiciously well, I want to know whether the problem is genuinely easy or whether there is leakage. If it performs badly, I want to inspect the errors before assuming that model capacity is the problem. If gradient boosting solves the tabular problem reliably, replacing it with a neural network needs an engineering reason rather than a more fashionable architecture.
+
+I would therefore restructure the practical around baselines rather than around algorithm comparison. The question would no longer be “Which of these models gets the highest score?” It would be “What is the cheapest experiment that teaches us something useful about this problem?” A baseline provides a floor, but more importantly it provides information. It tells us whether the signal exists, whether the features are meaningful, whether the evaluation setup is plausible, and whether increasing complexity has earned the right to become the next experiment.
+
+## I would teach metrics with much more suspicion
+
+The original course introduced MSE, MAE, confusion matrices, accuracy, precision and recall. I would keep all of them. What I would change is the amount of trust implicitly placed in the final number.
+
+Machine learning education often makes evaluation look cleaner than it is. Split the dataset, train the model, compute a metric, compare models. The mathematics is useful, but this workflow encourages a subtle mistake: it makes the metric look like a description of the model when it is really a description of the model on a particular dataset under a particular definition of success.
+
+Accuracy gives the obvious demonstration because class imbalance can make it almost meaningless, but the problem is broader than accuracy. A single aggregate can hide a system that works very well for one part of the distribution and very badly for another. A test set can be statistically clean while representing very little of what the deployed model will encounter. A threshold that maximizes F1 may be completely wrong once false positives and false negatives have different operational costs.
+
+I would still derive the metrics, but then I would spend more time breaking them. Students would inspect errors manually, slice performance across meaningful subgroups, move decision thresholds, compare calibration, investigate disagreement between metrics, and design evaluation sets around failure modes. In the original practical, printing the metric was close to the end of the exercise. Today I would treat it as the point where the interesting work starts.
+
+## Some of my neural-network explanations were useful simplifications. I would label them as such now.
+
+When the course reached deep learning, I introduced the basic neuron with the familiar expression
+
+```text
+f(x) = σ(Wx + b)
+```
+
+and used simple visual examples to explain what weights, bias and nonlinear activation functions contribute. The goal was to move from a mathematical function to a network that could approximate increasingly complex relationships. I would still use that path because it gives students a mechanism rather than asking them to accept neural networks as mysterious pattern recognizers.
+
+What I would change is how explicitly I mark the boundary between intuition and mechanism. In a small example, describing a bias as shifting a function or describing a weight as changing its shape can be useful. Taken too literally, those explanations become poor mental models once the network is high-dimensional. The same problem appears repeatedly in AI education. Context windows become “working memory,” feed-forward blocks become “long-term memory,” embeddings become “meaning,” and temperature becomes “creativity.” Each metaphor gives the learner something to hold onto, but each also introduces an idea that eventually has to be unlearned or refined.
+
+I would now put a sentence on certain slides that I rarely put there before: “This explanation is useful, and it will break later.” Understanding where an analogy stops working is part of understanding the concept itself. Accessibility does not require pretending that the simplified explanation is the final one.
+
+## Optimization is where mathematics starts becoming systems engineering
+
+The optimization part of the course covered batch gradient descent, stochastic gradient descent, mini-batches, momentum, RMSProp, Adam and learning-rate experiments. Students could change the learning rate and watch training converge slowly, oscillate, plateau or diverge. I would keep almost all of that because seeing optimization fail is much more memorable than being told why a hyperparameter matters.
+
+What I would add is the systems dimension of the same decisions. Mini-batches are usually introduced as an optimization compromise between full-batch stability and stochastic updates, but batch size is also a memory and throughput decision. Sequence length affects both what the model sees and how much memory attention consumes. Mixed precision changes numerical behavior while allowing different performance characteristics on accelerators. Gradient accumulation, distributed training and checkpointing exist partly because mathematical objectives eventually collide with finite hardware.
+
+This connection matters because it is one of the first places where the neat separation between “the ML part” and “the engineering part” begins to disappear. The learning algorithm and the machine executing it are not independent. A theoretically attractive configuration that does not fit in memory, takes days to iterate on, or makes experimentation prohibitively expensive is not a useful training strategy.
+
+## I would spend much less time searching hyperparameters blindly
+
+One of the practical sessions used `GridSearchCV` to automate parameter search. It is a useful tool to know, and I would still demonstrate it. I would no longer let it occupy much conceptual space.
+
+There is something reassuring about turning a set of parameters into a grid, testing the combinations and selecting the highest-scoring one. It creates the appearance of exhaustive rigor. In practice, brute-force search can consume large amounts of compute while answering a poorly formed question. It is also easy to tune the search process more carefully than the evaluation process, which is exactly backwards.
+
+The workflow I would emphasize now is baseline, failure inspection, hypothesis, experiment, measurement, then iteration. Random search or Bayesian optimization can be introduced when a search is genuinely justified, but experiment tracking and reproducibility matter earlier. A result without the dataset version, code version, configuration, evaluation procedure and relevant environment is not much of an experiment. The original course spent time on finding better hyperparameters. A modern version would spend more time on knowing why a run was better and being able to reproduce it.
+
+## CNNs and RNNs are still worth teaching, even when they are no longer the destination
+
+The architecture sessions moved from convolutional neural networks to recurrent networks before arriving at attention. Looking at the curriculum now, I would keep that sequence even though neither CNNs nor standard RNNs occupy the position they once had in the broader AI conversation.
+
+CNNs teach something more general than image classification. They show how architecture can encode assumptions about a problem. Local receptive fields and shared weights assume that nearby structure matters and that useful patterns can appear at different positions. The architecture gets an advantage because it does not begin with complete ignorance about the structure of images. That idea survives any particular model family: architecture is partly a decision about which assumptions we are willing to build into the system.
+
+RNNs remain useful for a different reason. A hidden state gives an intuitive model of sequential computation, and backpropagation through time makes the difficulties of long dependency chains concrete. Once students see the limitations of recurrence, including vanishing gradients, restricted parallelism and the difficulty of preserving distant information, attention feels less like an arbitrary invention. Older architectures can be valuable because they preserve the problem that a newer architecture was designed to solve.
+
+I would therefore teach fewer architectures as a catalogue and spend more time asking the same question about each one: what assumption does this architecture encode, what problem does that assumption solve, and what new limitation does it introduce?
+
+## Transformers survived the course. My idea of where the hard part lives did not.
+
+The transformer session broke self-attention into queries, keys and values, then built toward the larger architecture. I still think that is worth teaching from the inside. A modern AI engineer does not need to derive every operation from memory, but attention should not become a magical black box merely because excellent implementations already exist.
+
+The larger change is what happens after the transformer diagram.
+
+When I originally built this course, it was natural for most of the complexity to appear inside the model. Tokens became embeddings, embeddings moved through attention and feed-forward blocks, and the network produced an output distribution. RAG, fine-tuning and function calling appeared near the end as advanced capabilities around the LLM.
+
+After building production AI systems, I would redraw that picture. The model is still complex, but much of the engineering difficulty has moved into the surrounding system: retrieval, ranking, context construction, routing, tool execution, structured outputs, retries, caching, permissions, latency, cost, observability and evaluation. A better model can improve the system, but it cannot compensate for arbitrary context, bad retrieval, unreliable tools or an evaluation setup that does not measure the behavior users actually need.
+
+<MlCoursePerspectiveShift />
+
+This is probably the largest difference between the course I taught and the course I would teach now. I used to spend most of the architectural discussion explaining what happened inside the model. I would now devote equal time to what happens before the request reaches it and after the model responds.
+
+## RAG and function calling would no longer be bonus material
+
+The last part of the original course introduced retrieval-augmented generation, fine-tuning, RLHF, adversarial examples, AI ethics and function calling. Several of those topics would now deserve much more space, but RAG and tool use are the clearest examples.
+
+I originally presented RAG primarily as a way to give an LLM access to external or more recent information. That description is not wrong, but it hides most of the engineering problem. Retrieval introduces its own pipeline: query construction, candidate retrieval, ranking, filtering, context selection, generation and evaluation. Weakness at any stage can surface as what appears to be a model failure. Once that is understood, “use RAG” stops being an architectural answer and becomes the beginning of a set of design questions.
+
+I would also move function calling much earlier. Connecting a model to external operations changes the nature of the application. The model is no longer only generating text. It is selecting actions inside a software system. That creates new concerns around schemas, validation, authorization, retries, idempotency, tool errors and the boundary between probabilistic reasoning and deterministic execution. What occupied a practical example in the original course now sits near the foundation of agentic systems.
+
+Fine-tuning would become more conditional as well. Rather than presenting it as the natural next step after prompting, I would frame it as one option among several and ask what behavior we are actually trying to change. Retrieval, better context construction, structured prompting, tool use and workflow changes may solve problems that additional training will not.
+
+## The biggest update is that I no longer organize AI around the model
+
+Looking back through all eleven sessions, I do not think the old curriculum was wrong. The progression was sensible, the fundamentals still matter, and I would keep a surprising amount of the technical material. What changed is my choice of center.
+
+A model-centric curriculum naturally asks how algorithms work, how architectures differ, how parameters are learned and how performance improves. Those questions remain necessary. A system-centric curriculum adds another layer of questions: where the data comes from, what happens when dependencies fail, how behavior is evaluated, what gets cached, what is observable, where latency accumulates, what users are allowed to do, how failures propagate and whether the overall system remains useful when individual components are imperfect.
+
+That change did not make model knowledge less valuable. It changed what the knowledge is for. Understanding optimization helps when diagnosing training. Understanding attention helps when reasoning about context and inference. Understanding embeddings helps when building retrieval. Understanding metrics helps when designing evaluation. The theory becomes more useful when it stops being the destination and becomes one of the tools available for understanding a larger system.
+
+## The course I would teach in 2026
+
+If I rebuilt the course today and still had roughly eleven sessions, I would keep the first half closer to the original than someone might expect. Strong AI engineers still benefit from knowing what a model is optimizing, why evaluation can lie, how representations are learned, and why different architectures behave differently. I would resist replacing those foundations with eleven sessions of framework APIs.
+
+The second half, however, would change substantially. The path would probably look like this:
+
+<MlCourseCurriculumList />
+
+<MlCourseCurriculum2026 />
+
+The final session would intentionally put everything in the same diagram: data pipelines, models, retrieval systems, vector stores, tools, APIs, queues, caches, GPUs, evaluation, monitoring, security boundaries and users. That is the diagram I wish had been at the end of the original course because it changes how the earlier sessions are interpreted.
+
+The purpose of learning machine learning is not to keep the model at the center forever. It is to understand the model well enough to know where it belongs.
+
+## Original course material
+
+The decks below are the original material I used for the EMSI course. They are included as course artifacts rather than rewritten versions created for this retrospective.
+
+<EmsiSlideGallery />

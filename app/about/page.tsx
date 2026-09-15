@@ -20,7 +20,7 @@ export default function AboutPage() {
       </h1>
       <p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted">
         I&apos;m {site.author}. I build conversational AI, publish open resources
-        for Moroccan Darija, and write: sometimes two-minute notes on NLP,
+        for Moroccan Darija, and write: sometimes two-minute notes on building AI systems,
         sometimes longer essays on what we think we know, sometimes long-form
         project writeups with the working parts left in.
       </p>

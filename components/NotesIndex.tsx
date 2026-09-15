@@ -4,23 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PostDate } from "@/components/PostDate";
 import type { Post } from "@/lib/content";
-import { noteCategories } from "@/lib/site";
+import { labelForCategory, noteCategories } from "@/lib/site";
 
 type NoteCard = Omit<Post, "content">;
 
-const APPLICATION_CATEGORIES = new Set([
-  "applications",
-  "marketing",
-  "customer service",
-  "healthcare",
-  "business intelligence",
-]);
-
 function matchesCategory(post: NoteCard, categoryId: string) {
   if (categoryId === "all") return true;
-  const cat = (post.category ?? "").toLowerCase();
-  if (categoryId === "applications") return APPLICATION_CATEGORIES.has(cat);
-  return cat === categoryId;
+  return (post.category ?? "").toLowerCase() === categoryId;
 }
 
 export function NotesIndex({ posts }: { posts: NoteCard[] }) {
@@ -35,7 +25,7 @@ export function NotesIndex({ posts }: { posts: NoteCard[] }) {
     <div>
       <div className="mt-10">
         <p className="text-[0.65rem] uppercase tracking-[0.18em] text-muted">
-          Categories
+          Topics
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {noteCategories.map((item) => {
@@ -71,8 +61,8 @@ export function NotesIndex({ posts }: { posts: NoteCard[] }) {
             className="group flex flex-col rounded-3xl border border-line bg-canvas-2 p-6 transition hover:border-gold/50"
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs uppercase tracking-[0.16em] text-gold">
-                {post.readingTime ?? "2 min"}
+              <span className="text-[0.7rem] font-medium uppercase tracking-[0.2em] text-gold">
+                {post.category ? labelForCategory(post.category) : (post.readingTime ?? "2 min")}
               </span>
               {post.date ? (
                 <PostDate date={post.date} variant="compact" />
@@ -81,7 +71,7 @@ export function NotesIndex({ posts }: { posts: NoteCard[] }) {
             <h2 className="mt-4 font-display text-2xl italic text-cream group-hover:text-gold">
               {post.title}
             </h2>
-            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted">
+            <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted">
               {post.description}
             </p>
           </Link>

@@ -22,7 +22,7 @@ export const kindLabels = {
     singular: "Note",
     plural: "Notes",
     closer: "End of note",
-    promise: "NLP in two minutes.",
+    promise: "Short observations on building, evaluating, and operating AI systems.",
   },
   thoughts: {
     singular: "Essay",
@@ -82,7 +82,7 @@ export const rooms = [
     eyebrow: "03",
     title: "Notes",
     description:
-      "NLP in two minutes. Foundations to production AI, packed into a short note.",
+      "Short observations on building, evaluating, and operating AI systems.",
   },
   {
     href: "/essays",
@@ -123,28 +123,28 @@ export const beliefs = [
 export const stats = [
   { value: "8+", label: "Years in AI" },
   { value: "500k", label: "DODa entries" },
-  { value: "54", label: "Two-minute notes" },
+  { value: "16", label: "Two-minute notes" },
   { value: "11", label: "Papers on Scholar" },
 ] as const;
 
 export const noteCategories = [
   { id: "all", label: "All" },
-  { id: "foundations", label: "Foundations" },
-  { id: "general", label: "General" },
-  { id: "advanced", label: "Advanced" },
-  { id: "applications", label: "Applications" },
+  { id: "systems", label: "Systems" },
+  { id: "agents", label: "Agents" },
+  { id: "retrieval", label: "Retrieval" },
+  { id: "evaluation", label: "Evaluation" },
+  { id: "inference", label: "Inference" },
+  { id: "models", label: "Models" },
 ] as const;
 
 /** Human labels for frontmatter categories shown on related cards. */
 export const categoryLabels: Record<string, string> = {
-  foundations: "Foundations",
-  general: "General",
-  advanced: "Advanced",
-  applications: "Applications",
-  marketing: "Marketing",
-  "customer service": "Customer service",
-  healthcare: "Healthcare",
-  "business intelligence": "Business intelligence",
+  systems: "Systems",
+  agents: "Agents",
+  retrieval: "Retrieval",
+  evaluation: "Evaluation",
+  inference: "Inference",
+  models: "Models",
   reads: "Note",
   thoughts: "Essay",
   articles: "Project",

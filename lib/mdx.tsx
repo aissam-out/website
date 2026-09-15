@@ -8,12 +8,22 @@ import remarkGfm from "remark-gfm";
 import rehypePrettyCode from "rehype-pretty-code";
 import {
   EngineeringTimeline,
+  H100CriticalPath,
+  H100ModelScheduling,
+  H100OptimizationSurface,
+  H100PipelineOverlap,
+  H100TargetSchedule,
   HumanSyntheticChart,
   MetricHero,
+  MlCourseCurriculum2026,
+  MlCourseCurriculumList,
+  MlCoursePath,
+  MlCoursePerspectiveShift,
   ScriptGapChart,
   TopicPerformanceChart,
   TrainingCurves,
 } from "@/components/charts";
+import { EmsiSlideGallery } from "@/components/EmsiSlideGallery";
 
 function textFromChildren(children: ReactNode): string {
   if (children == null || typeof children === "boolean") return "";
@@ -84,6 +94,16 @@ const components = {
   HumanSyntheticChart,
   EngineeringTimeline,
   TrainingCurves,
+  H100CriticalPath,
+  H100PipelineOverlap,
+  H100TargetSchedule,
+  H100ModelScheduling,
+  H100OptimizationSurface,
+  MlCoursePath,
+  MlCoursePerspectiveShift,
+  MlCourseCurriculumList,
+  MlCourseCurriculum2026,
+  EmsiSlideGallery,
 };
 
 export function PostBody({ source }: { source: string }) {

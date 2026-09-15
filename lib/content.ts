@@ -45,6 +45,7 @@ export type ListingItem =
   | { type: "post"; post: Post }
   | { type: "series"; series: Series };
 
+/** Published content only. Unpublished notes live in `content/archive` and are not loaded. */
 const contentRoot = path.join(process.cwd(), "content");
 
 export function slugifySeries(title: string) {

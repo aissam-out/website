@@ -1,0 +1,14 @@
+---
+title: "Agents need budgets"
+slug: "agents-need-budgets"
+date: 2026-08-17
+description: "An agent loop needs more than a stopping condition. It needs a budget."
+category: "agents"
+readingTime: "2 min"
+---
+
+An agent loop needs more than a stopping condition. It needs a budget.
+
+Once a model can repeatedly reason, retrieve information and call tools, several resources become variable at the same time: tokens, model calls, tool calls, wall-clock time, external API cost and the number of consequential actions attempted. A task that normally takes three steps can enter a loop because retrieval keeps returning ambiguous evidence, a tool repeatedly times out, or each observation causes the model to formulate another search. Waiting for the model to eventually decide that it is finished turns resource control into a probabilistic behavior.
+
+I prefer making those limits part of the harness. A workflow can have a maximum number of iterations, but that is only the simplest budget. Expensive tools may have their own call limits. Retrieval can have a bounded expansion strategy. Execution can have a deadline. Token consumption can trigger context compression or a fallback path. Actions with side effects can require a stricter budget than read-only operations. When a budget is exhausted, the system should know how to degrade deliberately: return partial evidence, ask the user for clarification, escalate, schedule continuation, or fail with enough state to resume safely. These limits are also useful signals for evaluation. If successful tasks suddenly require twice as many tool calls after a model or prompt change, something important has regressed even if the final answers still look correct. Autonomy without resource boundaries is difficult to operate. A capable agent should know what it can do, while its harness determines how much work it is allowed to spend doing it.

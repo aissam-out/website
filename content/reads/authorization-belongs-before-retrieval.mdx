@@ -1,0 +1,14 @@
+---
+title: "Authorization belongs before retrieval"
+slug: "authorization-belongs-before-retrieval"
+date: 2025-08-11
+description: "A RAG system can produce a perfectly grounded answer and still have a severe security bug."
+category: "retrieval"
+readingTime: "2 min"
+---
+
+A RAG system can produce a perfectly grounded answer and still have a severe security bug. Grounding only proves that the answer came from retrieved evidence. It says nothing about whether the caller was allowed to retrieve that evidence.
+
+This becomes important as soon as one retrieval system serves multiple users, teams or customers. A common architecture embeds everything into a shared index and relies on metadata filters to separate tenants or permission scopes. That can work, but those filters now form part of the authorization boundary. Forgetting a filter on one query path, applying it after vector search, using stale ACL metadata, or allowing an agent to construct arbitrary retrieval parameters can expose documents that the generation layer will happily summarize. Asking the LLM not to mention unauthorized information does not repair the design because the information has already crossed the security boundary by entering model context.
+
+I want authorization constraints derived from trusted application state and applied before candidate evidence can reach the model. The model can express what information it needs, but it should not determine which tenant, user or permission scope it is allowed to search. Retrieval traces should record the security scope used for each query so that access decisions can be audited. Evaluation should also include adversarial cross-user and cross-tenant cases, because ordinary relevance benchmarks will never reveal this class of failure. In a multi-user RAG system, retrieval is not merely a relevance component. It is part of data access infrastructure.

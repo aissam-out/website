@@ -1,0 +1,14 @@
+---
+title: "Retries are a correctness problem"
+slug: "retries-are-a-correctness-problem"
+date: 2026-08-24
+description: "A retry sounds like reliability plumbing until the operation being retried has consequences."
+category: "systems"
+readingTime: "2 min"
+---
+
+A retry sounds like reliability plumbing until the operation being retried has consequences. Reading a document twice is usually harmless. Charging a card twice, sending the same notification twice, creating duplicate embeddings, inserting the same record twice, or asking an agent to execute the same tool again is a correctness failure.
+
+This matters throughout AI systems because failure boundaries rarely align cleanly with model boundaries. A worker may finish inference and crash before acknowledging the job. A timeout may reach the caller even though the remote tool completed successfully. A daily pipeline may restart after processing half its input. An agent may see an ambiguous tool response and decide to repeat the action. Simply wrapping these operations in retries can convert transient infrastructure failures into duplicated work or duplicated side effects. I therefore want stable identifiers and idempotency at the points where work becomes consequential. A recording, document, request or tool operation should have an identity that survives retries, and the system should be able to determine whether the intended work already happened.
+
+The useful design question is not "how many retries should we configure?" It is "what does repeating this operation mean?" Some stages are naturally repeatable. Others need deduplication, idempotency keys, transactions, checkpoints or explicit reconciliation. Agent tools deserve the same treatment as APIs in any distributed system. The model may decide that an action should be attempted again, but the execution layer still needs to know whether doing so is safe. Reliability mechanisms are only useful when they preserve correctness.

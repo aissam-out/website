@@ -1,6 +1,6 @@
 # Epistemic Noise
 
-Personal site for Aissam Outchakoucht: 2-minute NLP notes, projects, thoughts, and technical articles.
+Personal site for Aissam Outchakoucht: two-minute notes on building AI systems, projects, essays, and technical writeups.
 
 ```bash
 npm install

@@ -1,0 +1,14 @@
+---
+title: "A cache key is part of the AI system"
+slug: "a-cache-key-is-part-of-the-ai-system"
+date: 2025-09-16
+description: "Caching looks deceptively easy around AI workloads."
+category: "systems"
+readingTime: "2 min"
+---
+
+Caching looks deceptively easy around AI workloads. Compute something expensive once, store the result, and reuse it. The difficult question is deciding when two requests are actually equivalent.
+
+For deterministic preprocessing, the answer may be straightforward. Once models, retrieval and user-specific context enter the pipeline, equivalence becomes much more complicated. An embedding depends on the model and sometimes its preprocessing version. A generated response can depend on the prompt template, model, decoding configuration, retrieved documents and conversation state. A retrieval result can depend on the index version, filters and the permissions of the user making the request. If the cache key ignores one of those dependencies, a perfectly functioning cache can return a perfectly wrong result. In multi-tenant systems this can become a security problem rather than a performance problem.
+
+I therefore think about cache design together with versioning and data lineage. Which inputs determine this artifact? Which of them can change? How will old entries become invalid? Can an artifact generated under model version A safely be consumed after version B is deployed? Does a cached retrieval result belong to the query, or to the query plus corpus version plus authorization context? The best caches in AI systems often sit around expensive, stable boundaries such as parsing, transcription, embeddings or immutable document transformations. Caching model output itself can also be valuable, but it requires a much stronger definition of equivalence. Cache hit rate is an optimization metric. Cache correctness is part of the system contract.

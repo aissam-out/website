@@ -23,8 +23,7 @@ export default function ReadsPage() {
         <em className="gold-em not-italic">know</em> a little more.
       </h1>
       <p className="mt-6 max-w-2xl text-muted">
-        NLP boiled down. From foundations to advanced techniques, simplified
-        and packed into a short note.
+        Short observations on building, evaluating, and operating AI systems.
       </p>
       <NotesIndex posts={posts} />
     </div>

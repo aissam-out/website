@@ -14,7 +14,7 @@ import {
   type ListingItem,
 } from "@/lib/content";
 import { formatDateLong } from "@/lib/dates";
-import { kindLabels, seriesCopy, site } from "@/lib/site";
+import { kindLabels, labelForCategory, seriesCopy, site } from "@/lib/site";
 
 function chapterLabel(chapter: { title: string; shortTitle?: string }) {
   if (chapter.shortTitle) return chapter.shortTitle;
@@ -52,7 +52,6 @@ export function PostLayout({
   );
 
   const hasOutbound = Boolean(post.github || post.live);
-  const hasRelated = Boolean(post.related?.length);
 
   return (
     <article className="mx-auto max-w-3xl px-5 pb-24 pt-16 md:px-8">
@@ -70,6 +69,7 @@ export function PostLayout({
       ) : (
         <p className="mt-8 text-xs uppercase tracking-[0.22em] text-gold">
           {resolvedEyebrow}
+          {post.category ? ` · ${labelForCategory(post.category)}` : ""}
           {post.readingTime ? ` · ${post.readingTime}` : ""}
         </p>
       )}
@@ -97,7 +97,7 @@ export function PostLayout({
           className="group inline-flex items-center gap-3 rounded-full border border-line bg-canvas-2 py-1.5 pl-1.5 pr-4 transition hover:border-gold/45"
         >
           <Image
-            src="/media/aissam.jpeg"
+            src="/aissam.jpeg"
             alt={site.author}
             width={40}
             height={40}
@@ -114,50 +114,27 @@ export function PostLayout({
         </a>
       </div>
 
-      {hasOutbound || hasRelated ? (
-        <div className="mt-8 flex flex-col gap-4 border-y border-line py-5">
-          {hasOutbound ? (
-            <div className="flex flex-wrap gap-3">
-              {post.github ? (
-                <a
-                  href={post.github}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-canvas hover:opacity-90"
-                >
-                  View on GitHub
-                </a>
-              ) : null}
-              {post.live ? (
-                <a
-                  href={post.live}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-cream transition hover:border-gold hover:text-gold"
-                >
-                  Live demo
-                </a>
-              ) : null}
-            </div>
+      {hasOutbound ? (
+        <div className="mt-8 flex flex-wrap gap-3 border-y border-line py-5">
+          {post.github ? (
+            <a
+              href={post.github}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-canvas hover:opacity-90"
+            >
+              View on GitHub
+            </a>
           ) : null}
-          {hasRelated ? (
-            <div>
-              <p className="text-[0.65rem] uppercase tracking-[0.16em] text-gold">
-                Related
-              </p>
-              <ul className="mt-2 flex flex-col gap-1.5">
-                {post.related!.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-cream/85 transition hover:text-gold"
-                    >
-                      {link.label} →
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {post.live ? (
+            <a
+              href={post.live}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-cream transition hover:border-gold hover:text-gold"
+            >
+              Live demo
+            </a>
           ) : null}
         </div>
       ) : null}
