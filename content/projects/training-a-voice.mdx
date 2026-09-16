@@ -6,6 +6,8 @@ description: "Three text-to-speech experiments, 20.73 hours of synthetic speech,
 tags: [Text-to-speech, Fine-tuning, Evaluation, ML systems, Darija]
 featured: true
 readingTime: "10 min"
+huggingface: "https://huggingface.co/ai-ssam/darija-omnivoice-kore-v1"
+huggingfaceDataset: "https://huggingface.co/datasets/ai-ssam/darija-tts-8400"
 related:
   - href: /projects/teaching-translategemma-darija
     label: Teaching TranslateGemma Darija
@@ -17,7 +19,7 @@ related:
 
 I kept hearing that gap in the Darija speech my first fine-tuned model produced. I had good recordings, a working training pipeline, and a loss curve moving in the right direction. But whenever I pressed play, the result still sounded like something I would have to apologize for before showing it to someone. The training was making progress; I wasn’t sure the voice was.
 
-I wanted a downloadable text-to-speech model that could speak Darija naturally, switch into French when the sentence called for it, and offer some control over delivery. Getting there took two MOSS experiments, several misleading explanations, failed checkpoint uploads, and eventually a smaller model called OmniVoice. The biggest improvement began before its training run: it was the first candidate that sounded convincing on my own text.
+I wanted a downloadable text-to-speech model that could speak Darija naturally, switch into French when the sentence called for it, and offer some control over delivery. Getting there took two MOSS experiments, several misleading explanations, failed checkpoint uploads, and eventually a smaller model called OmniVoice. The biggest improvement began before its training run: it was the first candidate that sounded convincing on my own text. The fine-tuned checkpoint is on Hugging Face as [ai-ssam/darija-omnivoice-kore-v1](https://huggingface.co/ai-ssam/darija-omnivoice-kore-v1).
 
 ## Knowing what good sounded like
 
@@ -119,7 +121,7 @@ Finally, I would plan checkpoint retention and exports before renting the GPU. S
 
 ## A voice worth building on
 
-OmniVoice is the best downloadable option I have personally found and tested for this Darija use case so far. The setup works reasonably well, and I preserved the final inference checkpoint. That is a personal listening judgment and a practical result, rather than a benchmark claim or proof that every part of the fine-tune improved on the base model.
+OmniVoice is the best downloadable option I have personally found and tested for this Darija use case so far. The setup works reasonably well, and I preserved the final inference checkpoint as [ai-ssam/darija-omnivoice-kore-v1](https://huggingface.co/ai-ssam/darija-omnivoice-kore-v1). That is a personal listening judgment and a practical result, rather than a benchmark claim or proof that every part of the fine-tune improved on the base model.
 
 Its licensing also matters: the code is Apache-2.0, while the pretrained weights use a non-commercial license. That fits this project’s non-commercial use, but it limits how the result could be deployed. [Model card](https://huggingface.co/k2-fsa/OmniVoice).
 

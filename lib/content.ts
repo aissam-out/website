@@ -22,6 +22,8 @@ export type Post = {
   sourceUrl?: string;
   github?: string;
   live?: string;
+  huggingface?: string;
+  huggingfaceDataset?: string;
   featured?: boolean;
   series?: string;
   seriesOrder?: number;
@@ -111,6 +113,10 @@ function loadDir(kind: ContentKind): Post[] {
         sourceUrl: data.sourceUrl ? String(data.sourceUrl) : undefined,
         github: data.github ? String(data.github) : undefined,
         live: data.live ? String(data.live) : undefined,
+        huggingface: data.huggingface ? String(data.huggingface) : undefined,
+        huggingfaceDataset: data.huggingfaceDataset
+          ? String(data.huggingfaceDataset)
+          : undefined,
         featured: Boolean(data.featured),
         series: data.series ? String(data.series) : undefined,
         seriesOrder:

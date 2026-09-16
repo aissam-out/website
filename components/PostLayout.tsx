@@ -51,7 +51,16 @@ export function PostLayout({
     (item) => item.slug !== prev?.slug && item.slug !== next?.slug,
   );
 
-  const hasOutbound = Boolean(post.github || post.live);
+  const hasOutbound = Boolean(
+    post.github || post.live || post.huggingface || post.huggingfaceDataset,
+  );
+
+  const githubLabel = post.github?.includes("darija-open-dataset")
+    ? "View DODa on GitHub"
+    : "View on GitHub";
+
+  const hfButtonClass =
+    "inline-flex items-center gap-2 rounded-full border border-[#E5B800]/40 bg-[#FFD21E] px-3.5 py-2 text-[0.8125rem] font-semibold text-[#0B0F19] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] transition hover:bg-[#FFC400]";
 
   return (
     <article className="mx-auto max-w-3xl px-5 pb-24 pt-16 md:px-8">
@@ -116,14 +125,58 @@ export function PostLayout({
 
       {hasOutbound ? (
         <div className="mt-8 flex flex-wrap gap-3 border-y border-line py-5">
+          {post.huggingface ? (
+            <a
+              href={post.huggingface}
+              target="_blank"
+              rel="noreferrer"
+              className={hfButtonClass}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/huggingface.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="h-4 w-4 shrink-0"
+              />
+              Go to Hugging Face model
+            </a>
+          ) : null}
+          {post.huggingfaceDataset ? (
+            <a
+              href={post.huggingfaceDataset}
+              target="_blank"
+              rel="noreferrer"
+              className={hfButtonClass}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/huggingface.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="h-4 w-4 shrink-0"
+              />
+              View HF dataset
+            </a>
+          ) : null}
           {post.github ? (
             <a
               href={post.github}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-canvas hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-[#24292F] px-3.5 py-2 text-[0.8125rem] font-semibold text-white transition hover:bg-[#1b1f24]"
             >
-              View on GitHub
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/github.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="h-4 w-4 shrink-0 invert"
+              />
+              {githubLabel}
             </a>
           ) : null}
           {post.live ? (
@@ -131,7 +184,7 @@ export function PostLayout({
               href={post.live}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium text-cream transition hover:border-gold hover:text-gold"
+              className="inline-flex rounded-full border border-line px-3.5 py-2 text-[0.8125rem] font-medium text-cream transition hover:border-gold hover:text-gold"
             >
               Live demo
             </a>
