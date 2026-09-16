@@ -1,0 +1,126 @@
+---
+title: "The Darija TTS Model Hunt: Failures, False Starts, and a Working Voice"
+slug: "training-a-voice"
+date: 2026-09-16
+description: "Three text-to-speech experiments, 20.73 hours of synthetic speech, and a working OmniVoice model: lessons in model selection, evaluation, and training on rented GPUs."
+tags: [Text-to-speech, Fine-tuning, Evaluation, ML systems, Darija]
+featured: true
+readingTime: "10 min"
+related:
+  - href: /projects/teaching-translategemma-darija
+    label: Teaching TranslateGemma Darija
+  - href: /projects/h100-batch-optimization
+    label: Getting more work out of one H100
+---
+
+> There is something strange about hearing your own language spoken almost correctly. You understand every word, yet the rhythm and pronunciation make familiar expressions sound foreign.
+
+I kept hearing that gap in the Darija speech my first fine-tuned model produced. I had good recordings, a working training pipeline, and a loss curve moving in the right direction. But whenever I pressed play, the result still sounded like something I would have to apologize for before showing it to someone. The training was making progress; I wasn’t sure the voice was.
+
+I wanted a downloadable text-to-speech model that could speak Darija naturally, switch into French when the sentence called for it, and offer some control over delivery. Getting there took two MOSS experiments, several misleading explanations, failed checkpoint uploads, and eventually a smaller model called OmniVoice. The biggest improvement began before its training run: it was the first candidate that sounded convincing on my own text.
+
+## Knowing what good sounded like
+
+Darija makes “supports Arabic” a surprisingly weak filter. A model can pronounce formal Arabic clearly and still struggle with ordinary Moroccan speech. The vocabulary, rhythm, borrowed words, and spelling conventions differ. A sentence might move between Arabic-script Darija, a French expression, a name, and a number without any of those transitions feeling unusual to the person saying it.
+
+That was the behavior I wanted. Intelligibility alone was not enough. I wanted speech that sounded natural without mentally correcting the pronunciation as I listened. Expressiveness mattered too: a reassuring response and an excited announcement should have different deliveries while remaining recognizably the same voice.
+
+Google’s speech generation gave me a reference I liked. Its Darija was strong enough that I could focus on what I wanted to reproduce rather than wonder whether the target was realistic. The limitation was access: I could generate audio, but I could not download the model and adapt it myself.
+
+## Twenty hours of good audio
+
+I built a [single-speaker synthetic corpus](https://huggingface.co/datasets/ai-ssam/darija-tts-8400) using Google’s Kore voice: 8,400 recordings totaling 20.73 hours. Around 4,800 clips covered expressive deliveries, including different versions of the same underlying sentence, while another 3,600 broadened neutral coverage. The texts included conversational Darija, French code-switching, names, numbers, dates, and varied sentence structures.
+
+Synthetic generation made the dataset practical. I could deliberately cover situations, maintain a relatively consistent speaker, and produce several deliveries without organizing recording sessions. Most importantly, I liked the resulting audio. It gave the project a concrete target.
+
+But good recordings do not guarantee a good student model. The student still has to map text into speech using its own pretrained knowledge, representation, and training objective. A twenty-hour corpus can help adapt a capable base model; it cannot be assumed to supply every linguistic capability that base model lacks.
+
+The expressive variants also introduced a subtle evaluation issue. If four clips share the same sentence, placing three in training and one in evaluation does not test generalization to unseen text. Those recordings should be split together as a sentence family. A later wrapper audit found that its grouping logic did not recognize the dataset’s `family_id` field unless it had been normalized to a supported alias. That exposed a possible leakage path, although it did not establish that leakage had occurred in the [uploaded dataset](https://huggingface.co/datasets/ai-ssam/darija-tts-8400).
+
+## The first run: training worked, the voice didn’t
+
+My first experiment used MOSS-TTS Local 1.7B, with its original 24 kHz audio tokenizer. I ran full supervised fine-tuning in BF16, using a batch size of one, gradient accumulation of eight, a learning rate of `1e-5`, and three epochs. That amounted to approximately 3,024 optimizer updates. Training loss fell from roughly 5.05 to 4.7.
+
+On a dashboard, this looked like progress. In my headphones, it was insufficient. The output was functional, but its pronunciation and naturalness remained well below the Google recordings. I did not need another decimal place on the loss graph to hear that.
+
+The evaluation setup also deserved less confidence than I had given it. The wrapper created held-out splits, but it did not connect a validation set to a proper epoch-by-epoch validation-loss loop. An optional sample-generation stage then failed because of a dependency mismatch. The optimization had run, but the checks intended to help judge its result were incomplete.
+
+This was the first important correction to my process: a trainer that runs successfully is only one part of a useful experiment. I also need a reliable way to hear what changed.
+
+## The second run: a bigger model and the same uncertainty
+
+Next came MOSS-TTS Local v1.5, a 4B model, with a newer 48 kHz stereo audio tokenizer. I reused the [corpus](https://huggingface.co/datasets/ai-ssam/darija-tts-8400), reduced the learning rate to `5e-6`, and planned five epochs. The actual training log showed a target of 5,165 optimizer updates.
+
+The loss moved from approximately 5.3 to 5.1, then stayed around that level for much of the run. Meanwhile, the Hugging Face repository stopped updating even as local training continued. Background synchronization was failing with `BadRequestError`: newer checkpoints existed on the rented machine, but their uploads were not succeeding.
+
+The last observed step was 4,266, around 83% of the planned run, before I terminated the instance. I was unwilling to keep paying without clearer evidence that the experiment was becoming useful.
+
+There is a limit to what that establishes. I heard disappointing output from the first MOSS model. I do not have a controlled listening comparison for the last local checkpoint of the second run. Its flat-looking loss and broken uploads made it a frustrating experiment, but they do not prove what those final weights would have sounded like.
+
+## When plausible explanations became expensive
+
+I used AI assistants throughout the project to research models, write scripts, and troubleshoot failures. They saved work, but they also offered confident explanations that went beyond the evidence. Tokenizer fragmentation, weak dialect coverage, codec overhead, and learning-rate problems were all proposed as causes. Each could be worth investigating. None had been isolated by the loss graph.
+
+A scalar training loss cannot tell me whether a model pronounces a French word naturally inside a Darija sentence. It also cannot establish that a stereo codec caused an optimization problem or that a plateau represents a particular local minimum. Even comparing the loss values of different speech architectures is misleading when their objectives and representations differ.
+
+Some advice failed a simpler test. An F5-TTS recommendation came with a training command containing an invalid architecture choice, an unsupported flag, and a batch-size setting interpreted as audio frames rather than clips. It omitted required preparation and fine-tuning settings too. Reading the actual training interface could catch those errors before another GPU rental.
+
+I became more deliberate about separating evidence levels. A model-card language claim, a documented training recipe, a successful inference request, and a convincing listening result on my own text answer different questions. The next candidate finally supplied the last of those.
+
+## Finding the right starting point
+
+I opened the [OmniVoice demo](https://huggingface.co/spaces/k2-fsa/OmniVoice), selected Moroccan Arabic, and entered my own text. It sounded good. After the earlier experiments, that was a much more compelling reason to proceed than another architectural explanation.
+
+There was relevant evidence behind it too. OmniVoice’s published language inventory explicitly includes Moroccan Arabic under `ary`, with 104.67 hours of reported training data, alongside substantial French coverage. That does not guarantee good code-switching, but it is more informative than a broad Arabic-support label. The model had also demonstrated useful behavior on the text I actually cared about. [Language inventory](https://github.com/k2-fsa/OmniVoice/blob/master/docs/languages.md).
+
+At approximately 0.6B parameters, OmniVoice was smaller than both MOSS models I had trained. That changed the adaptation problem. I now had a base model that already handled Darija convincingly, and could use [my corpus](https://huggingface.co/datasets/ai-ssam/darija-tts-8400) to work toward the selected voice and delivery. The earlier move to a larger model had not given me that assurance.
+
+This was the real turning point: testing the starting model carefully enough to know what training needed to add.
+
+<TtsModelJourney />
+
+<Caption>Figure 1. The model-selection journey. The OmniVoice listening result preceded adaptation; this timeline is an experiment record rather than a controlled quality ranking.</Caption>
+
+## Training OmniVoice
+
+I kept the existing [Hugging Face dataset](https://huggingface.co/datasets/ai-ssam/darija-tts-8400) and the reusable Vast.ai setup. The instance downloaded the trainer and corpus, prepared the data, and started optimization automatically. Changing model families required different preprocessing, including OmniVoice’s 24 kHz token representation and WebDataset shards, but it did not require manually rebuilding the source dataset.
+
+I set the language explicitly to `ary` and used a fixed-voice configuration intended to generate in the target voice without requiring a reference recording at inference. The run used BF16, a learning rate of `1e-5`, an 8,192-token batch budget, and checkpoint intervals of 250 steps. Emotion metadata remained available for conditioning, although including those labels did not by itself establish reliable emotion control.
+
+The first run reached 3,000 optimizer steps, then I continued toward 5,000 total steps. Token-budget batching changed how I needed to interpret progress: the number of recordings in a batch depended on their lengths, so the earlier sample-batch arithmetic could not translate those steps directly into epochs.
+
+I also needed to resist turning “more steps” into a quality claim. The final saved model came from step 5,000, but I do not have a matched comparison proving how much it improved over step 3,000 or the original base model. The practical success was obtaining a working adapted model from a foundation that already sounded promising.
+
+## Keeping the model after the GPU is gone
+
+The operational problems continued even after optimization. Following the initial OmniVoice run, the wrapper raised a `NameError` involving `controls_path`. The same logs recorded synchronization at step 3,000. Training progress had survived, but a later wrapper stage had failed. Treating the whole run as either “successful” or “failed” would have hidden the distinction that mattered for recovery.
+
+Then Hugging Face rejected uploads because the account’s private repository storage limit had been reached. The sizes explained why this happened: a full training checkpoint was roughly 6.9 GB, including an optimizer file around 4.6 GB, while the final model weights were about 2.45 GB. Repeatedly preserving resumable training state consumed much more space than keeping an inference export.
+
+<TtsCheckpointStorage />
+
+<Caption>Figure 2. Approximate sizes reported during recovery. The optimizer is part of the full checkpoint; the three bars are independent observations and must not be added together.</Caption>
+
+I eventually preserved the step-5,000 inference model in a repository of about 2.46 GB. The remote resume folder was no longer present. That retained the model for generation, but not everything required to resume the exact optimizer state. Further fine-tuning from those weights remained possible; faithful continuation of that same training run required the missing state.
+
+On a rented instance, these distinctions have a direct cost. A local checkpoint disappears with the machine. An “Uploading” message only confirms that an attempt began. The useful stopping condition is knowing that the artifact you need has reached durable storage. For future runs, I would add a fresh download-and-load check before declaring the export verified.
+
+I would also separate the pipeline’s outcomes explicitly: optimization completed, checkpoint saved locally, upload verified, evaluation completed, and inference export usable. That makes a partial failure recoverable without guessing what survived.
+
+## What I would do differently
+
+I would begin with a small, fixed listening set covering ordinary Darija, French switching, names, numbers, longer sentences, and different deliveries. Every candidate base model would see the same inputs before I committed to training it. A model that already handles those cases gives a much clearer adaptation target.
+
+Next, I would verify the evaluation path rather than trust its configuration. Related sentence variants would stay together during splitting, validation batches would actually run, and saved checkpoints would generate comparable audio. Pronunciation, naturalness, speaker consistency, and instruction following would be assessed separately, because an improvement in one can hide a regression in another.
+
+For diagnosis, I would prefer small tests that answer specific questions. A codec round trip can reveal whether the audio representation preserves the source quality. Matched base-versus-fine-tuned samples can reveal what adaptation changes. Token inspection can test a fragmentation hypothesis. Those checks provide a better basis for spending than a convincing explanation of a loss curve.
+
+Finally, I would plan checkpoint retention and exports before renting the GPU. Storage capacity, upload failures, and post-training dependencies can decide whether a successful optimization run leaves behind anything usable.
+
+## A voice worth building on
+
+OmniVoice is the best downloadable option I have personally found and tested for this Darija use case so far. The setup works reasonably well, and I preserved the final inference checkpoint. That is a personal listening judgment and a practical result, rather than a benchmark claim or proof that every part of the fine-tune improved on the base model.
+
+Its licensing also matters: the code is Apache-2.0, while the pretrained weights use a non-commercial license. That fits this project’s non-commercial use, but it limits how the result could be deployed. [Model card](https://huggingface.co/k2-fsa/OmniVoice).
+
+The moment that changed the project happened in a browser, before the successful training run. I selected Moroccan Arabic, entered a sentence, and heard a voice worth working with. Everything afterward had a clearer purpose: adapt that capability, measure what changes, and make sure the model survives when the rented GPU is gone.

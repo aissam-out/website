@@ -22,6 +22,8 @@ import {
   ScriptGapChart,
   TopicPerformanceChart,
   TrainingCurves,
+  TtsCheckpointStorage,
+  TtsModelJourney,
 } from "@/components/charts";
 import { EmsiSlideGallery } from "@/components/EmsiSlideGallery";
 
@@ -103,6 +105,8 @@ const components = {
   MlCoursePerspectiveShift,
   MlCourseCurriculumList,
   MlCourseCurriculum2026,
+  TtsModelJourney,
+  TtsCheckpointStorage,
   EmsiSlideGallery,
 };
 

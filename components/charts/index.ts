@@ -17,3 +17,7 @@ export {
   MlCourseCurriculumList,
   MlCourseCurriculum2026,
 } from "@/components/charts/MlCourseDiagrams";
+export {
+  TtsModelJourney,
+  TtsCheckpointStorage,
+} from "@/components/charts/TtsDiagrams";
